@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建立訂單</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 12px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 420px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 22px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 17px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        select,
+        input[type="text"],
+        input[type="number"],
+        input[type="tel"],
+        input[type="date"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 15px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .form-section {
+            margin-bottom: 16px;
+            padding: 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+
+        .field-group {
+            margin-bottom: 10px;
+        }
+
+        .field-labels,
+        .field-inputs {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .field-labels label {
+            margin-bottom: 4px;
+        }
+
+        .checkbox-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .checkbox-line input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .sub-section {
+            margin-top: 8px;
+            padding: 10px;
+            border-left: 3px solid #007bff;
+            background-color: #f8fbff;
+        }
+
+        .summary-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            background-color: #fff;
+        }
+
+        .summary-row-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            background-color: #fff;
+        }
+
+        .summary-row-inline label {
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .summary-row-inline input {
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .summary-row-inline>div {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .summary-value {
+            font-weight: bold;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .payment-method {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .payment-method select {
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .payment-method label {
+            display: inline-block;
+            margin-bottom: 0;
+            white-space: nowrap;
+            ;
+        }
+
+        .ship-date-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ship-date-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 0;
+        }
+
+        .ship-date-row input[type="date"] {
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .receiver-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .receiver-info button {
+            width: auto;
+            margin-bottom: 0;
+            padding: 4px 10px;
+        }
+
+        .action-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-link {
+            display: inline-block;
+            box-sizing: border-box;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-link:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 86%;
+            max-width: 360px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .modal-actions button {
+            width: 100%;
+            font-size: 15px;
+            padding: 10px 12px;
+        }
+
+        .modal-actions .cancel-btn {
+            background-color: #6c757d;
+        }
+
+        .modal-actions .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>建立訂單</h1>
+
+        <div class="form-section">
+            <h2>收件人資訊</h2>
+            <div class="receiver-info">
+                <label for="receiverName">收件人</label>
+                <button type="button" id="serchReciverBtn">搜尋歷史收件人</button>
+            </div>
+            <input type="text" id="receiverName" name="receiverName" placeholder="請輸入收件人姓名">
+            <div>
+                <label for="receiverPhone">電話</label>
+                <input type="tel" id="receiverPhone" name="receiverPhone" placeholder="請輸入電話">
+            </div>
+            <label for="receiverAddress">地址</label>
+            <input type="text" id="receiverAddress" name="receiverAddress" placeholder="請輸入地址">
+
+            <label class="checkbox-line" for="sameAsRecipient">
+                <input type="checkbox" id="sameAsRecipient" name="sameAsRecipient" checked>
+                <span>訂購人同收件人</span>
+            </label>
+
+            <div id="buyerBlock" class="sub-section" style="display: none;">
+                <h2>訂購人資訊</h2>
+                <div>
+                    <label for="buyerName">訂購人</label>
+                    <input type="text" id="buyerName" name="buyerName" placeholder="請輸入訂購人姓名">
+                </div>
+                <div>
+                    <label for="buyerPhone">電話</label>
+                    <input type="tel" id="buyerPhone" name="buyerPhone" placeholder="請輸入電話">
+                </div>
+                <label for="buyerAddress">地址</label>
+                <input type="text" id="buyerAddress" name="buyerAddress" placeholder="請輸入地址">
+            </div>
+        </div>
+
+        <div class="order-section">
+            <h2>品項價格</h2>
+            <div class="field-group">
+                <div class="field-labels">
+                    <label for="itemSelect">品項</label>
+                    <label for="specSelect">規格</label>
+                    <label for="quantity">數量</label>
+                </div>
+                <div class="field-inputs">
+                    <select id="itemSelect" name="itemSelect">
+                    </select>
+                    <select id="specSelect" name="specSelect">
+                    </select>
+                    <input type="number" id="quantity" name="quantity" min="1" value="1">
+                </div>
+            </div>
+
+            <div class="summary-row">
+                <label id="expectedPaymentDisplay" class="summary-value">預計貨款:0</label>
+            </div>
+
+            <div class="summary-row-inline">
+                <label for="actualPayment">實際貨款:</label>
+                <input type="number" id="actualPayment" name="actualPayment" min="0" value="0">
+            </div>
+
+            <div class="summary-row">
+                <label id="expectedShippingDisplay" class="summary-value">預計運費</label>
+            </div>
+
+            <div class="summary-row-inline">
+                <label for="actualShipping">實際運費:</label>
+                <input type="number" id="actualShipping" name="actualShipping" min="0" value="100">
+            </div>
+
+            <div class="summary-row-inline">
+                <div>
+                    <label id="expectedTotalAmountDisplay" class="summary-value">預計總金額</label>
+                </div>
+                <div class="payment-method">
+                    <label for="paymentMethod">預計付款方式</label>
+                    <select id="paymentMethod" name="paymentMethod">
+                        <option value="現金">現金</option>
+                        <option value="匯款">匯款</option>
+                    </select>
+                </div>
+            </div>
+            <div class="ship-date-row">
+                <label class="ship-date-label">
+                    <input type="checkbox" id="specificateShipDate" name="SSSS">指定出貨日
+                </label>
+                <input id='shipDate' type="date" style="display: none;">
+            </div>
+            <label for="orderNote">訂單備註</label>
+            <textarea id="orderNote" name="orderNote" placeholder="請輸入備註"></textarea>
+        </div>
+
+        <div class="action-row">
+            <button type="button" id="submitOrderBtn">建立訂單</button>
+            <a href="/" class="btn-link">返回首頁</a>
+        </div>
+    </div>
+
+    <div id="modalSubmitConfirm" class="modal">
+        <div class="modal-content">
+            <span class="close-button" data-close-modal>&times;</span>
+            <h2>確認送出</h2>
+            <p>確認要送出這筆訂單嗎？</p>
+            <div class="modal-actions">
+                <button type="button" id="confirmSubmitBtn">確認送出</button>
+                <button type="button" class="cancel-btn" data-close-modal>取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCustomerCheck" class="modal">
+        <div class="modal-content">
+            <span class="close-button" data-close-modal>&times;</span>
+            <h2>客戶確認</h2>
+            <p id="customerModalMessage">是否已有客戶？</p>
+            <div class="modal-actions">
+                <button type="button" id="confirmCustomerBtn">確認</button>
+                <button type="button" class="cancel-btn" data-close-modal>取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalResult" class="modal">
+        <div class="modal-content">
+            <span class="close-button" data-close-modal>&times;</span>
+            <h2>建立完成</h2>
+            <p id="resultModalMessage">訂單建立完成。</p>
+            <div class="modal-actions">
+                <button type="button" id="confirmResultBtn">確認</button>
+            </div>
+        </div>
+    </div>
+    <script id="products-data" type="application/json">
+    {{item | tojson }}
+    </script>
+    <script id="freight-data" type="application/json">
+    {{freights | tojson}}
+    </script>
+    <script>
+        // const products = {{ item | tojson}};
+        const products = JSON.parse(
+            document.getElementById("products-data").textContent
+        );
+        const freight = JSON.parse(document.getElementById("freight-data").textContent);
+        const itemSelect = document.getElementById("itemSelect");
+        const specSelect = document.getElementById("specSelect");
+        const names = [...new Set(products.map(p => p.product_name))];
+        const receiverSearchbtn = document.getElementById('serchReciverBtn')
+        //以下是copilot寫的
+        document.addEventListener('DOMContentLoaded', function () {
+            const sameAsRecipientCheckbox = document.getElementById('sameAsRecipient');
+            const buyerBlock = document.getElementById('buyerBlock');
+            const itemSelect = document.getElementById('itemSelect');
+            const specSelect = document.getElementById('specSelect');
+            const quantityInput = document.getElementById('quantity');
+            const expectedPaymentDisplay = document.getElementById('expectedPaymentDisplay');
+            const expectedShippingDisplay = document.getElementById('expectedShippingDisplay');
+            const expectedTotalAmountDisplay = document.getElementById('expectedTotalAmountDisplay');
+            const submitOrderBtn = document.getElementById('submitOrderBtn');
+            const modalSubmitConfirm = document.getElementById('modalSubmitConfirm');
+            const modalCustomerCheck = document.getElementById('modalCustomerCheck');
+            const modalResult = document.getElementById('modalResult');
+            const specificateShipDate = document.getElementById('specificateShipDate')
+            const shipDate = document.getElementById('shipDate')
+            //先來處理前端顯示產品規格的部分
+            names.forEach(name => {
+                itemSelect.add(new Option(name, name));
+            });
+            updateSpec();
+
+            function toggleBuyerBlock() {
+                buyerBlock.style.display = sameAsRecipientCheckbox.checked ? 'none' : 'block';
+            }
+            function toggleShippingDate() {
+                shipDate.style.display = specificateShipDate.checked ? 'inline-block' : 'none';
+            }
+
+            function calculateExpectedValues() {
+                const selectedOption = specSelect.options[specSelect.selectedIndex];
+                const unitPrice = Number(selectedOption?.dataset.price || 0);
+                const quantity = Number(quantityInput.value || 0);
+                const expectedPayment = unitPrice * quantity;
+                // console.log(freight)
+
+                const transport_spec = Number(specSelect.value.split("-")[2])
+                let transportway = 'single'
+                if (quantityInput.value > 1) {
+                    transportway = 'multi'
+                }
+                else { }
+                let transport_code = 'freight' + '-' + transportway + '-' + transport_spec
+                console.log(transport_code)
+                const transportObj = freight.reduce((obj, item) => {
+                    obj[item.product_code] = item.default_price;
+                    return obj;
+                }, {});
+                // console.log(transportObj);
+                let transport_rate = 0
+                if ([10, 15, 20].includes(transport_spec)) {
+                    transport_rate = Number(transportObj[transport_code])
+                }
+                const expectedShipping = quantity * transport_rate;
+                const expectedTotal = expectedPayment + expectedShipping;
+
+                expectedPaymentDisplay.textContent = `預計貨款: ${expectedPayment}`;
+                expectedShippingDisplay.textContent = `預計運費: ${expectedShipping}`;
+                expectedTotalAmountDisplay.textContent = `預計總額: ${expectedTotal}`;
+            }
+
+            sameAsRecipientCheckbox.addEventListener('change', toggleBuyerBlock);
+            specificateShipDate.addEventListener('change', toggleShippingDate);
+            itemSelect.addEventListener('change', () => {
+                updateSpec();
+                calculateExpectedValues();
+            });
+
+            specSelect.addEventListener('change', () => {
+                calculateExpectedValues();
+
+            });
+            quantityInput.addEventListener('input', calculateExpectedValues);
+            quantityInput.addEventListener('change', calculateExpectedValues);
+
+            toggleBuyerBlock();
+            toggleShippingDate();
+            calculateExpectedValues();
+
+            submitOrderBtn.addEventListener('click', function () {
+                openModal(modalSubmitConfirm);
+            });
+
+            document.getElementById('confirmSubmitBtn').addEventListener('click', function () {
+                closeModal(modalSubmitConfirm);
+                // fetch placeholder，後續由你自行補上
+                console.log('submit fetch placeholder');
+                showCustomerModal({ hasCustomer: true });
+            });
+
+            document.getElementById('confirmCustomerBtn').addEventListener('click', function () {
+                closeModal(modalCustomerCheck);
+                // fetch placeholder，後續由你自行補上
+                console.log('customer check fetch placeholder');
+                showResultModal({ message: '訂單建立完成。' });
+            });
+
+            document.getElementById('confirmResultBtn').addEventListener('click', function () {
+                closeModal(modalResult);
+            });
+
+            document.querySelectorAll('[data-close-modal]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const modal = button.closest('.modal');
+                    closeModal(modal);
+                });
+            });
+
+            document.querySelectorAll('.modal').forEach(function (modal) {
+                modal.addEventListener('click', function (event) {
+                    if (event.target === modal) {
+                        closeModal(modal);
+                    }
+                });
+            });
+        });
+
+        function openModal(modal) {
+            if (!modal) return;
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modal) {
+            if (!modal) return;
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function showCustomerModal(data) {
+            const message = document.getElementById('customerModalMessage');
+            if (data && data.hasCustomer) {
+                message.textContent = '已有客戶，是否直接帶入資料？';
+            } else {
+                message.textContent = '目前沒有相同客戶，請繼續建立。';
+            }
+            openModal(document.getElementById('modalCustomerCheck'));
+        }
+
+        function showResultModal(data) {
+            const message = document.getElementById('resultModalMessage');
+            message.textContent = data && data.message ? data.message : '建立完成';
+            openModal(document.getElementById('modalResult'));
+        }
+        //以上是copiolot寫的
+        function updateSpec() {
+            specSelect.innerHTML = "";
+            const selectedName = itemSelect.value;
+            const filtered = products.filter(
+                p => p.product_name === selectedName
+            );
+            filtered.forEach(product => {
+                const option = new Option(
+                    product.spec,          // 顯示文字
+                    product.product_code   // value
+                );
+                option.dataset.price = product.default_price;
+                specSelect.add(option);
+            });
+        };
+
+        receiverSearchbtn.addEventListener('click', () => {
+            const modalCustomerCheck = document.getElementById('modalCustomerCheck');
+            const sameAsRecipientCheckbox = document.getElementById('sameAsRecipient');
+            const receiverName = document.getElementById('sameAsRecipient');
+            const buyerName = document.getElementById('buyerName')
+            const customerModalMessage = document.getElementById('customerModalMessage')
+            if (sameAsRecipientCheckbox.checked) { buyerName.value = receiverName.value }
+            if (!receiverName.value && !buyerName.value) {
+                customerModalMessage.innerText = '請輸入收件人/訂購人姓名以供查詢';
+                openModal(modalCustomerCheck)
+            }
+            else {
+                let postData = { 'receivername': receiverName.value, 'buyername': buyerName.value }
+                fetch('/orders/search-customer', {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(postData),
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log(data.data)
+                        if (customerModalMessage) {
+                            customerModalMessage.innerText = "";
+                            customerModalMessage.innerText = data
+                        }
+                        openModal(modalCustomerCheck)
+                    }).catch(err => {
+                        console.error(err);
+                    })
+            }
+        })
+
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新增支出</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        select,
+        input[type="date"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* Radio Button Group Styles */
+        .radio-group {
+            margin-bottom: 15px;
+        }
+        .radio-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .radio-row label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        .radio-row input[type="radio"] {
+            width: auto;
+            margin: 0;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+        /* Hidden field for other category */
+        .hidden-field {
+            display: none;
+            margin-bottom: 15px;
+        }
+        .hidden-field.show {
+            display: block;
+        }
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 350px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .modal-content p {
+            color: #555;
+            margin: 15px 0;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            width: auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            flex: 1;
+        }
+
+        .cancel-button {
+            background-color: #6c757d;
+        }
+
+        .cancel-button:hover {
+            background-color: #5a6268;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Error message styles */
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>新增支出</h1>
+
+        <form id="expenseForm" name="expenseForm">
+            <!-- 支出日期 -->
+            <label for="expenseDate">支出日期：</label>
+            <input type="date" id="expenseDate" name="expenseDate" required>
+            <div class="error-message" id="dateError">支出日期為必填</div>
+
+            <!-- 支出類別 (Radio Button) -->
+            <label>支出類別：</label>
+            <div class="radio-group">
+                <div class="radio-row">
+                    <label>
+                        <input type="radio" id="catMaterial" name="category" value="原料">
+                        <span>原料</span>
+                    </label>
+                    <label>
+                        <input type="radio" id="catSupply" name="category" value="物料">
+                        <span>物料</span>
+                    </label>
+                    <label>
+                        <input type="radio" id="catPersonnel" name="category" value="人事費">
+                        <span>人事費</span>
+                    </label>
+                </div>
+                <div class="radio-row">
+                    <label>
+                        <input type="radio" id="catEquipment" name="category" value="設備">
+                        <span>設備</span>
+                    </label>
+                    <label>
+                        <input type="radio" id="catOther" name="category" value="其他">
+                        <span>其他</span>
+                    </label>
+                </div>
+            </div>
+            <div class="error-message" id="categoryError">支出類別為必填</div>
+
+            <!-- 支出選單（動態顯示） -->
+            <label for="expenseMenu">支出選單：</label>
+            <select id="expenseMenu" name="expenseMenu" required>
+                <option value="">-- 請先選擇支出類別 --</option>
+            </select>
+            <div class="error-message" id="menuError">支出選單為必填</div>
+
+            <!-- 支出金額 -->
+            <label for="expenseAmount">支出金額：</label>
+            <input type="number" id="expenseAmount" name="expenseAmount" placeholder="請輸入數字" min="0.01" step="0.01" required>
+            <div class="error-message" id="amountError">支出金額為必填，且需大於 0</div>
+
+            <!-- 明細說明 -->
+            <label for="expenseDetails">明細說明：</label>
+            <textarea id="expenseDetails" name="expenseDetails" placeholder="請輸入明細說明..."></textarea>
+
+            <!-- 隱藏的其他類別說明 -->
+            <div class="hidden-field" id="otherField">
+                <label for="otherDescription">請說明「其他」類別：</label>
+                <input type="text" id="otherDescription" name="otherDescription" placeholder="請輸入其他類別說明...">
+            </div>
+
+            <button type="submit">存入</button>
+            <a href="/">返回首頁</a>
+        </form>
+    </div>
+
+    <!-- 確認與取消 Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeConfirmModal()">&times;</span>
+            <h2>確認支出紀錄</h2>
+            <p id="confirmMessage">系統發現相近的支出紀錄，請確認是否要新增此筆支出？</p>
+            <div class="modal-buttons">
+                <button type="button" class="cancel-button" onclick="closeConfirmModal()">取消</button>
+                <button type="button" onclick="confirmExpense()">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 完成結果 Modal -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeResultModal()">&times;</span>
+            <h2 id="resultTitle">支出新增成功</h2>
+            <p id="resultMessage">您的支出紀錄已成功新增。</p>
+            <div class="modal-buttons">
+                <button type="button" onclick="closeResultModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 支出選單對應表
+        const menuOptions = {
+            '原料': ['肥料', '農藥', '其他原料'],
+            '物料': ['包材', '農具', '油錢', '其他物料'],
+            '人事費': ['家人薪資', '外勞薪資', '農藥工資', '其他工資'],
+            '設備': ['新購', '維修'],
+            '其他': []
+        };
+
+        // 頁面載入時設定預設日期
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('expenseDate');
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+
+            // 監聽支出類別變化
+            const categoryRadios = document.querySelectorAll('input[name="category"]');
+            categoryRadios.forEach(radio => {
+                radio.addEventListener('change', updateMenuOptions);
+            });
+
+            // 監聽表單提交
+            document.getElementById('expenseForm').addEventListener('submit', handleFormSubmit);
+        });
+
+        // 更新支出選單選項
+        function updateMenuOptions() {
+            const selectedCategory = document.querySelector('input[name="category"]:checked');
+            const menuSelect = document.getElementById('expenseMenu');
+            const otherField = document.getElementById('otherField');
+
+            if (!selectedCategory) {
+                menuSelect.innerHTML = '<option value="">-- 請先選擇支出類別 --</option>';
+                otherField.classList.remove('show');
+                return;
+            }
+
+            const category = selectedCategory.value;
+            const options = menuOptions[category];
+
+            // 清空選單
+            menuSelect.innerHTML = '<option value="">-- 請選擇支出選項 --</option>';
+
+            // 新增選項
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                menuSelect.appendChild(opt);
+            });
+
+            // 顯示/隱藏其他類別說明欄位
+            if (category === '其他') {
+                otherField.classList.add('show');
+            } else {
+                otherField.classList.remove('show');
+                document.getElementById('otherDescription').value = '';
+            }
+        }
+
+        // 驗證表單
+        function validateForm() {
+            let isValid = true;
+
+            // 檢查日期
+            const dateInput = document.getElementById('expenseDate');
+            const dateError = document.getElementById('dateError');
+            if (!dateInput.value) {
+                dateError.classList.add('show');
+                isValid = false;
+            } else {
+                dateError.classList.remove('show');
+            }
+
+            // 檢查類別
+            const categoryRadios = document.querySelectorAll('input[name="category"]:checked');
+            const categoryError = document.getElementById('categoryError');
+            if (categoryRadios.length === 0) {
+                categoryError.classList.add('show');
+                isValid = false;
+            } else {
+                categoryError.classList.remove('show');
+            }
+
+            // 檢查選單
+            const menuSelect = document.getElementById('expenseMenu');
+            const menuError = document.getElementById('menuError');
+            if (!menuSelect.value) {
+                menuError.classList.add('show');
+                isValid = false;
+            } else {
+                menuError.classList.remove('show');
+            }
+
+            // 檢查金額
+            const amountInput = document.getElementById('expenseAmount');
+            const amountError = document.getElementById('amountError');
+            if (!amountInput.value || parseFloat(amountInput.value) <= 0) {
+                amountError.classList.add('show');
+                isValid = false;
+            } else {
+                amountError.classList.remove('show');
+            }
+
+            return isValid;
+        }
+
+        // 表單提交處理
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            // 收集表單數據
+            const formData = collectFormData();
+
+            // 發送到後端檢查相近紀錄
+            checkForSimilarRecords(formData);
+        }
+
+        // 收集表單數據
+        function collectFormData() {
+            return {
+                date: document.getElementById('expenseDate').value,
+                category: document.querySelector('input[name="category"]:checked').value,
+                menu: document.getElementById('expenseMenu').value,
+                amount: parseFloat(document.getElementById('expenseAmount').value),
+                details: document.getElementById('expenseDetails').value,
+                other: document.getElementById('otherDescription').value
+            };
+        }
+
+        // 檢查相近紀錄（模擬後端調用）
+        function checkForSimilarRecords(formData) {
+            // 這裡應該調用後端 API 檢查相近紀錄
+            // 為了演示，這裡模擬後端返回結果
+            console.log('發送到後端的表單數據：', formData);
+
+            // 顯示確認 Modal
+            document.getElementById('confirmModal').classList.add('show');
+        }
+
+        // 確認支出（再次提交到後端）
+        function confirmExpense() {
+            // 關閉確認 Modal
+            closeConfirmModal();
+
+            // 收集表單數據
+            const formData = collectFormData();
+
+            // 發送到後端保存
+            submitExpenseToBackend(formData);
+        }
+
+        // 提交支出到後端
+        function submitExpenseToBackend(formData) {
+            // 這裡應該調用後端 API 保存支出紀錄
+            console.log('提交支出紀錄到後端：', formData);
+
+            // 模擬後端返回成功結果
+            setTimeout(() => {
+                showResultModal(true, '支出新增成功', '您的支出紀錄已成功新增。');
+            }, 500);
+        }
+
+        // 顯示結果 Modal
+        function showResultModal(success, title, message) {
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+
+            resultTitle.textContent = title;
+            resultMessage.textContent = message;
+
+            if (success) {
+                resultTitle.style.color = '#28a745';
+            } else {
+                resultTitle.style.color = '#dc3545';
+            }
+
+            document.getElementById('resultModal').classList.add('show');
+        }
+
+        // 關閉確認 Modal
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('show');
+        }
+
+        // 關閉結果 Modal
+        function closeResultModal() {
+            document.getElementById('resultModal').classList.remove('show');
+            // 重置表單
+            document.getElementById('expenseForm').reset();
+            // 重置預設日期
+            const dateInput = document.getElementById('expenseDate');
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+            // 重置選單
+            document.getElementById('expenseMenu').innerHTML = '<option value="">-- 請先選擇支出類別 --</option>';
+            // 隱藏其他類別欄位
+            document.getElementById('otherField').classList.remove('show');
+        }
+
+        // 點擊外部區域關閉 Modal
+        window.addEventListener('click', function(event) {
+            const confirmModal = document.getElementById('confirmModal');
+            const resultModal = document.getElementById('resultModal');
+
+            if (event.target === confirmModal) {
+                closeConfirmModal();
+            }
+            if (event.target === resultModal) {
+                closeResultModal();
+            }
+        });
+    </script>
+</body>
+</html>

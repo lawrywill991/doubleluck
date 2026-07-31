@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right bottom, #4CAF50, #8BC34A, #CDDC39);
+            /* 綠色漸層背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            overflow: hidden;
+            /* 防止滾動 */
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.45);
+            /* 半透明黑色背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .login-card {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%;
+            /* 行動裝置寬度 */
+            max-width: 400px;
+            /* 最大寬度 */
+            animation: fadeIn 0.5s ease-out;
+            /* 淡入動畫 */
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            color: #4CAF50;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: calc(100% - 20px);
+            /* 考慮 padding */
+            padding: 12px 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .login-card {
+                width: 95%;
+                padding: 25px;
+            }
+
+            h2 {
+                font-size: 1.6em;
+            }
+
+            .input-group input {
+                padding: 10px 8px;
+            }
+
+            button {
+                padding: 12px 20px;
+                font-size: 1em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                width: 90%;
+                /* 更小的裝置，稍微放大一些 */
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-dialog {
+            background: #ffffff;
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .eerror-dialog h2 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+
+        .error-dialog p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .error-dialog button {
+            background-color: #4CAF50;
+        }
+
+        .error-dialog button:hover {
+            background-color: #45a049;
+        }
+
+        .forgetpwd {
+            text-align: left;
+            margin-top: -10px;
+            margin-bottom: 15px;
+        }
+
+        .forgetpwd p {
+            display: inline-block;
+            margin: 0;
+            color: #4CAF50;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .forgetpwd p:hover {
+            text-decoration: underline;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            width: 100%;
+            margin-top: 0;
+        }
+
+        .forgot-password-modal {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            /*animation:fadeIn .5s ease-out; */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h2>登入</h2>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="username">使用者名稱</label>
+                    <input type="text" id="account" name="account" placeholder="請輸入您的帳號" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">密碼</label>
+                    <input type="password" id="password" name="password" placeholder="請輸入您的密碼" required>
+                </div>
+                <div class="forgetpwd">
+                    <p id="forgotPassword">忘記密碼</p>
+                </div>
+                <button type="submit">登入</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="errorModalOverlay">
+        <div class="error-dialog">
+            <h2>登入失敗</h2>
+            <p id="loginResponse">請檢查您的帳號或密碼。</p>
+            <button id="errorOkButton">確定</button>
+        </div>
+    </div>
+    <div class="modal-overlay hidden" id="forgotPasswordModalOverlay">
+        <div class="forgot-password-modal">
+            <h2>忘記密碼</h2>
+            <form id="forgotPasswordForm">
+                <div class="input-group">
+                    <label for="engName">英文姓名</label>
+                    <input type="text" id="engName" placeholder="請輸入您的英文名子" required>
+                </div>
+                <div class="input-group">
+                    <lebel for="email">Email</lebel>
+                    <input type="email" id="email" placeholder="請輸入Email" required>
+                </div>
+                <div class="input-group">
+                    <label for="title">管理員與你的關係</label>
+                    <select id="title" required>
+                        <option value="">請選擇稱謂</option>
+                        <option value="爸爸">爸爸</option>
+                        <option value="媽媽">媽媽</option>
+                        <option value="哥哥">哥哥</option>
+                        <option value="姊姊">姊姊</option>
+                        <option value="弟弟">弟弟</option>
+                        <option value="妹妹">妹妹</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="authorName">管理員本名</label>
+                    <input type="text" id="authorName" placeholder="請輸入本系統作者本名" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" id="forgotCancelButtton">取消</button>
+                    <button type="submit" id="forgotSubmitButton">送出</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const loginForm = document.getElementById("loginForm");
+            const accountInput = document.getElementById("account");
+            const passwordInput = document.getElementById("password");
+            // const loginModalOverlay = document.getElementById("loginModalOverlay");
+            const errorModalOverlay = document.getElementById("errorModalOverlay");
+            const errorOkButton = document.getElementById("errorOkButton");
+            const forgotPasswordModalOverlay = document.getElementById("forgotPasswordModalOverlay");
+            const forgotPasswordForm = document.getElementById("forgotPasswordForm");
+            const forgotPassword = document.getElementById("forgotPassword");
+            const forgotCancelButtton = document.getElementById("forgotCancelButtton");
+
+            loginForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                const account = accountInput.value;
+                const password = passwordInput.value;
+
+                try {
+                    const response = await fetch("/login", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ "account": account, "password": password }),
+                    });
+
+                    const data = await response.json();
+
+                    console.log(data)
+
+                    // console.log(response)
+                    if (response.ok && data.status === true) {
+                        window.location.href = "/";
+                    }
+                    else if (response.ok && data.message === "no users_account") {
+                        let loginFalseInfo = document.getElementById("loginResponse")
+                        loginFalseInfo.textContent = "查無此使用者帳號"
+                        // loginModalOverlay.classList.add("hidden")
+                        errorModalOverlay.classList.remove("hidden")
+                    }
+
+                    else if (response.ok && data.message === "Too often login") {
+                        let loginFalseInfo = document.getElementById("loginResponse")
+                        loginFalseInfo.textContent = "錯誤登入次數過多，請30分鐘後再登入"
+                        // loginModalOverlay.classList.add("hidden")
+                        errorModalOverlay.classList.remove("hidden")
+                    }
+                    else {
+                        let loginFalseInfo = document.getElementById("loginResponse")
+                        loginFalseInfo.textContent = "帳號密碼錯誤，請重新輸入帳號密碼"
+                        // loginModalOverlay.classList.add("hidden");
+                        errorModalOverlay.classList.remove("hidden");
+                    }
+                } catch (error) {
+                    console.error("Login error:", error);
+                    // loginModalOverlay.classList.add("hidden");
+                    errorModalOverlay.classList.remove("hidden");
+                }
+            });
+            forgotPassword.addEventListener("click", () => {
+                forgotPasswordModalOverlay.classList.remove("hidden");
+            });
+            errorOkButton.addEventListener("click", () => {
+                errorModalOverlay.classList.add("hidden");
+                // loginModalOverlay.classList.remove("hidden");
+            });
+            forgotCancelButtton.addEventListener("click", () => {
+                forgotPasswordModalOverlay.classList.add("hidden");
+            });
+            forgotPasswordForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const user_account = document.getElementById("engName").value
+                const email = document.getElementById("email").value
+                const relationship = document.getElementById("title").value
+                const name = document.getElementById("authorName").value
+                let apiInfo = { "account": user_account, "email": email, "relationship": relationship, "name": name }
+                // console.log(apiInfo)
+                try {
+                    const response = await fetch("/login/forgotpassword", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(apiInfo),
+                    });
+                    const data = await response.json();
+                    // console.log(data)
+                    if (response.ok && data.status === true) {
+                        window.location.href = "/";
+                    }
+                    else {
+                        let loginFalseInfo = document.getElementById("loginResponse")
+                        loginFalseInfo.textContent = "身分驗證失敗，帳號已鎖定，請聯繫系統管理員"
+                        forgotPasswordModalOverlay.classList.add("hidden")
+                        errorModalOverlay.classList.remove("hidden")
+
+                    }
+                }
+
+                catch (error) {
+                    console.error("Forgot password error:", error);
+                }
+            })
+        });
+    </script>
+</body>
+
+</html>

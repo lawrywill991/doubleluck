@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>首頁</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+
+    h1,
+    h2 {
+      color: #333;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .btn-link {
+      /* 讓 <a> 標籤可以像按鈕一樣設定寬度和內距 */
+      display: inline-block;
+      box-sizing: border-box;
+      /* 確保 padding 不會把 100% 寬度撐爆 */
+
+      /* 以下複製你原本寫得很讚的設定 */
+      background-color: #007bff;
+      color: white;
+      padding: 5px 5px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 18px;
+      width: 49%;
+
+      /* 補充：超連結專屬的修正 */
+      text-decoration: none;
+      /* 拔掉討人厭的底線 */
+      text-align: center;
+      /* 讓文字乖乖置中 */
+    }
+
+    /* 滑鼠移過去的變色效果 */
+    .btn-link:hover {
+      background-color: #0056b3;
+      color: white;
+      /* 確保滑鼠移過去字還是白色的 */
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 1.25rem;
+    }
+
+    #resetPassword {
+      display: inline-block;
+      cursor: pointer;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    .logout-button {
+      display: inline-block;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 18px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .logout-button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      /* Hidden by default */
+      position: fixed;
+      /* Stay in place */
+      z-index: 999;
+      /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%;
+      /* Full width */
+      height: 100%;
+      /* Full height */
+      overflow: auto;
+      /* Enable scroll if needed */
+      background-color: rgba(0, 0, 0, 0.4);
+      /* Black w/ opacity */
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.show {
+      display: flex;
+      /* Use flexbox for centering when shown */
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: auto;
+      /* Center the modal */
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      /* Could be more responsive */
+      max-width: 300px;
+      border-radius: 8px;
+      text-align: center;
+      position: relative;
+    }
+
+    /* 這是在管Modal右上角的小XX */
+    .close-button {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      cursor: pointer;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /*把[ Modal ]按鈕風格一致化*/
+    .modal-button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+    }
+
+    .modal-button:hover {
+      background: #45a049;
+    }
+
+    /* 遮住未完成功能的*/
+    .coming-soon {
+      position: relative;
+      margin: 30px 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fafafa;
+      border: 1px solid #ddd;
+    }
+
+    /* 半透明遮罩 */
+    .coming-soon::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, .3);
+      backdrop-filter: blur(.5px);
+      border-radius: 8px;
+    }
+
+    /* 中央提示文字 */
+    .coming-soon-mask {
+      position: absolute;
+
+      /*left: 0;
+      right: 0;
+
+      top: 25%;
+      bottom: 25%;
+
+      z-index: 2;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      */
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding-top: 40px;
+      z-index: 2;
+      text-align: center;
+
+      pointer-events: none;
+    }
+
+    /* 底下內容仍保留 */
+    .coming-soon .section {
+      opacity: .75;
+      filter: grayscale(.25);
+    }
+
+    .lock-card {
+      width: 80%;
+      max-width: 260px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+      text-align: center;
+    }
+
+    .lock-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    .lock-card h2 {
+      margin: 8px 0;
+      font-size: 22px;
+      color: #333;
+    }
+
+    .lock-card p {
+      color: #666;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+
+    .lock-card small {
+      color: #999;
+      letter-spacing: 2px;
+    }
+
+    .resetModal-content {
+      background-color: #fefefe;
+      margin: auto;
+      /* Center the modal */
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      /* Could be more responsive */
+      max-width: 300px;
+      border-radius: 8px;
+      text-align: left;
+      position: relative;
+    }
+
+    .reset-button-group {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="section" id="welcome-section">
+      <h1>好事成雙林園</h1>
+      <h2>記帳系統</h2>
+      <p>歡迎{{username}}！請在下方選擇功能。</p>
+      <p id="resetPassword">重設密碼</p>
+    </div>
+
+    <div class="section" id="work-time-section">
+      <a href="/addWorkHour" class="btn-link">儲存工作紀錄</a>
+      <button id="readpersonalDuration" class="btn-link">查詢工作紀錄</button>
+    </div>
+
+    <div class="section" id="orders">
+      <a href="/order/create" class="btn-link">建立訂單</a>
+    </div>
+
+    <!-- 施工區 -->
+    <div class="coming-soon">
+
+      <div class="coming-soon-mask">
+        🚧 <div class="lock-icon"></div>
+        <h2>更多功能開發中，敬請期待...</h2>
+        <p>目前僅開放<strong>工作紀錄</strong>功能。</p>
+        <small>Coming Soon...</small>
+      </div>
+
+
+
+      <div class="section" id="orders-uncomplete">
+        <!-- <a href="/order/create" class="btn-link">建立訂單</a> -->
+        <a class="btn-link">訂單貨款確認</a>
+        <a class="btn-link">訂單出貨確認</a>
+        <a class="btn-link">尚未收款明細</a>
+        <br />
+
+      </div>
+      <div class="section" id="finance">
+        <a class="btn-link">支出紀錄輸入</a>
+        <button id="readCashLevel" class="btn-link">現金存量查詢</button>
+        <h2>待開發功能</h2>
+      </div>
+    </div>
+
+    <div class="section" id="logout-section">
+      <button class="logout-button" type="button" id="logout">登出</button>
+    </div>
+  </div>
+  <div id="myModal" class="modal">
+    <!-- Modal content -->
+    <div class="modal-content">
+      <span class="close-button">&times;</span>
+      <h2 id="modalTitle">Modal 標題</h2>
+      <p id="modalInfo">這是 Modal 的內容區塊。</p>
+      <ul id="modalDisplay"></ul>
+      <button class="confirm-button">確認</button>
+    </div>
+  </div>
+  <div class="modal" id="resetPasswordModal">
+    <div class="resetModal-content">
+      <span class="close-button">&times;</span>
+      <h2>重設密碼</h2>
+      <label>請輸入您的原密碼(如忘記密碼請輸入***即可)</label>
+      <input type="password" id="originPassword">
+      <label>請輸入您欲修改之密碼</label>
+      <input type="password" id="newPassword">
+      <label>請再次輸入欲修改之密碼</label>
+      <input type="password" id="confirmedPassword">
+      <div class="reset-button-group">
+        <button class="modal-button" id="resetSubmit">送出</button>
+        <button class="modal-button" id="cancelReset">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById('myModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalInfo = document.getElementById('modalInfo');
+    const modalDisplay = document.getElementById('modalDisplay');
+    const showResetPasswordModal = document.getElementById('resetPassword')
+    const resetPasswordModal = document.getElementById('resetPasswordModal')
+    const resetModalClose = document.getElementById('cancelReset')
+    //登出按鈕的功能
+    const logout = document.getElementById("logout")
+    logout.addEventListener("click", () => {
+      window.location.href = "/logout";
+    });
+    //查詢工時的功能
+    const duration = document.getElementById("readpersonalDuration")
+    duration.addEventListener("click", (event) => {
+      event.preventDefault();
+      fetch("/readpersonalDuration", { method: "GET" })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data.data);
+          const values = Object.values(data.data[0]);
+          const recordResult = values[0];
+          if (modalDisplay) modalDisplay.innerHTML = "";
+          modalInfo.innerHTML = "";
+
+          modalTitle.textContent = '工時查詢結果';
+          modalInfo.textContent = `你的工時總計為${recordResult}小時`;
+        })
+        .catch((error) => { console.error("查詢工時時發生錯誤", error) })
+      modal.classList.add('show');
+    })
+
+
+    //查詢現金存量的功能
+    const cash = document.getElementById("readCashLevel")
+    cash.addEventListener("click", (event) => {
+      event.preventDefault();
+      modal.classList.add('show');
+    })
+
+    //重設密碼的功能
+    showResetPasswordModal.addEventListener("click", (event) => {
+      event.preventDefault();
+      resetPasswordModal.classList.add('show');
+    })
+    const resetPasswordSubmit = document.getElementById("resetSubmit")
+    const originPassword = document.getElementById("originPassword")
+    const newPassword = document.getElementById("newPassword")
+    const confirmPassword = document.getElementById("confirmedPassword")
+
+    resetPasswordSubmit.addEventListener('click', async (event) => {
+      event.preventDefault();
+      if (newPassword.value == confirmPassword.value) {
+        let resetInfo = { "origin_password": originPassword.value, "new_password": newPassword.value, "confirm_password": confirmPassword.value }
+        console.log(resetInfo)
+        try {
+          const response = await fetch("/login/resetpassword", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(resetInfo),
+          });
+          console.log(response)
+          const data = await response.json();
+          console.log(data)
+          if (response.ok && data.status === true) {
+            modalDisplay.innerHTML = "";
+            modalInfo.innerHTML = "";
+            modalTitle.textContent = '密碼重設結果';
+            modalInfo.textContent = "密碼重設成功。";
+            modal.classList.add('show');
+          }
+          else {
+            modalDisplay.innerHTML = "";
+            modalInfo.innerHTML = "";
+            modalTitle.textContent = '密碼重設';
+            modalInfo.textContent = "密碼重設失敗";
+            modal.classList.add('show');
+          }
+        }
+        catch (error) {
+          console.error("Forgot password error:", error);
+        }
+
+      }
+      else {
+        modalDisplay.innerHTML = "";
+        modalInfo.innerHTML = "";
+        modalTitle.textContent = '輸入錯誤';
+        modalInfo.textContent = "重複輸入之密碼與新密碼不一致";
+        modal.classList.add('show');
+      }
+    })
+
+
+
+    //modal 零星操作段(關閉)
+    modal.addEventListener('click', function (event) {
+      // console.log("你點擊了這個元素：", event.target);
+      // console.log("它的 class 有哪些：", event.target.className);
+      if (
+        event.target.classList.contains('close-button') ||
+        event.target.classList.contains('confirm-button') ||
+        event.target == modal
+      ) {
+        // console.log("【命中目標】準備關閉 Modal！")
+        modal.classList.remove('show');
+      }
+      else {
+        // console.log("【沒命中】這個元素不符合關閉條件。");
+      }
+    });
+
+    setupModal(resetPasswordModal)
+
+    //把關閉modal的方法抽成一個function 使用
+    function setupModal(modal) {
+
+      modal.addEventListener("click", function (event) {
+
+        if (
+          event.target.classList.contains("close-button") ||
+          event.target.classList.contains("modal-button") ||
+          event.target === modal
+        ) {
+          modal.classList.remove("show");
+        }
+
+      });
+
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首頁</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            /* Limit width for better mobile readability */
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        select,
+        input[type="time"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-link {
+            /* 💡 關鍵：讓 <a> 標籤可以像按鈕一樣設定寬度和內距 */
+            display: inline-block;
+            box-sizing: border-box;
+            /* 確保 padding 不會把 100% 寬度撐爆 */
+
+            /* 以下複製你原本寫得很讚的設定 */
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+
+            /* 💡 補充：超連結專屬的修正 */
+            text-decoration: none;
+            /* 拔掉討人厭的底線 */
+            text-align: center;
+            /* 讓文字乖乖置中 */
+        }
+
+        /* 滑鼠移過去的變色效果 */
+        .btn-link:hover {
+            background-color: #0056b3;
+            color: white;
+            /* 確保滑鼠移過去字還是白色的 */
+        }
+
+        .checkbox-group {
+            margin-bottom: 15px;
+        }
+
+        .checkbox-row {
+            display: grid;
+            justify-content: space-around;
+            /* Distribute items evenly */
+            
+            grid-template-columns: repeat(10, 1fr);
+            /* margin-bottom: 10px; */
+            /* Space between rows */
+            gap: 10px
+        }
+
+        .checkbox-row label {
+            margin-left: 5px;
+            /* Space between checkbox and its label */
+            margin-right: 15px;
+            /* Space between checkbox items */
+            display: inline-block;
+            /* Allow labels to sit next to checkboxes */
+            font-weight: bold;
+            /* Override bold for checkbox labels */
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: auto;
+            /* Allow checkbox to take its natural width */
+            margin-bottom: 0;
+            /* Remove bottom margin */
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            /* Stay in place */
+            z-index: 1;
+            /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            /* Full width */
+            height: 100%;
+            /* Full height */
+            overflow: auto;
+            /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.4);
+            /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+            /* Use flexbox for centering when shown */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            /* Center the modal */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            /* Could be more responsive */
+            max-width: 300px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>歡迎使用！</h1>
+
+        <label>選擇項目:</label>
+        <div class="checkbox-group">
+            
+            <div class="checkbox-row">
+                {% for emp_id, name in workers.items() %}
+                <input type="checkbox" id="{{ emp_id }}" name="item" value="{{ emp_id }}">
+                <label for="{{ emp_id }}">{{ name }}</label>
+                {% endfor %}
+            </div>
+            
+        </div>
+        <div class="form-group">
+            <label for="work-date">選擇日期：</label>
+            <input type="date" id="work-date" name="work-date">
+        </div>
+
+        <label for="startTimeInput">選擇工作開始時間:</label>
+        <input type="time" id="startTimeInput" name="startTimeInput">
+
+        <label for="endTimeInput">選擇工作結束時間:</label>
+        <input type="time" id="endTimeInput" name="endTimeInput">
+
+        <div id="timeDifference" style="margin-bottom: 15px; color: #555; font-weight: bold;">本次工作時間: -- 小時 -- 分鐘</div>
+
+        <label for="workContent">工作內容:</label>
+        <textarea id="workContent" name="workContent" placeholder="請輸入工作內容..." required></textarea>
+
+        <button type="submit">存入</button>
+        <a href="/" class="btn-link">返回首頁</a>
+        <!--button id="test">測試功能</button-->
+    </div>
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modalTitle">Modal 標題</h2>
+            <p id="modalInfo">這是 Modal 的內容區塊。</p>
+            <ul id="modalDisplay"></ul>
+            <button class="confirm-button">確認</button>
+        </div>
+    </div>
+    <script>
+        //---先讓日期可以預設為今天
+        document.addEventListener('DOMContentLoaded', function () {
+            const dateInput = document.getElementById('work-date');
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        });
+
+        //---以下是前端直接計算工作時間
+        document.addEventListener('DOMContentLoaded', function () {
+            const startTimeInput = document.getElementById('startTimeInput');
+            const endTimeInput = document.getElementById('endTimeInput');
+
+            startTimeInput.addEventListener('change', calculateTimeDifference);
+            endTimeInput.addEventListener('change', calculateTimeDifference);
+        });
+
+
+        function calculateTimeDifference() {
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+            const timeDifferenceDiv = document.getElementById('timeDifference');
+            if (startTime && endTime) {
+                const start = new Date(`2000-01-01T${startTime}`);
+                const end = new Date(`2000-01-01T${endTime}`);
+
+                let diffInMilliseconds = end - start;
+
+                // Handle overnight cases (e.g., start 22:00, end 02:00 next day)
+                if (diffInMilliseconds < 0) {
+                    diffInMilliseconds += 24 * 60 * 60 * 1000; // Add 24 hours
+                }
+
+                const diffInMinutes = Math.floor(diffInMilliseconds / (1000 * 60));
+                const hours = Math.floor(diffInMinutes / 60);
+                const minutes = diffInMinutes % 60;
+
+                timeDifferenceDiv.textContent = `本次工作時間: ${hours} 小時 ${minutes} 分鐘`;
+                return [hours, minutes]
+            } else {
+                timeDifferenceDiv.textContent = '本次工作時間: -- 小時 -- 分鐘';
+            }
+        }
+
+        //以下是將前端資料打包POST送出+Modal顯示結果段
+        const submitButton = document.querySelector('button[type="submit"]');
+        // const btn = document.getElementById("test");
+        const modal = document.getElementById('myModal');
+        const modalInfo = document.getElementById('modalInfo')
+        const modalTitle = document.getElementById('modalTitle')
+        const modalDisplay = document.getElementById('modalDisplay');
+
+        submitButton.addEventListener('click', (event) => {
+            event.preventDefault(); //小括號加event，並寫上這行的話代表阻止表單點擊後自動重新整理網頁！
+            //前端資料打包段
+            const checkedWorkers = document.querySelectorAll('input[name="item"]:checked');
+            const workers = Array.from(checkedWorkers).map(el => el.value);
+            // console.log(workers);
+            const dateInput = document.getElementById('work-date')
+            const date = dateInput.value
+            const startTime = startTimeInput.value
+            const endTime = endTimeInput.value
+            const [h, m] = calculateTimeDifference()
+            const duration = (h + (m / 60)).toFixed(2)
+            const workContent = document.getElementById("workContent").value
+            let object1 = { "workers": workers, "date": date, "start_time": startTime, "end_time": endTime, "duration": duration, "workContent": workContent }
+            // console.log(object1)
+            fetch("/insertDuration", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(object1),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.data);
+                    // console.log(data)
+                    // if (data.status === true) {
+                    const recordResult = data.data;
+
+                    // 1. 清空舊的資料
+                    if (modalDisplay) modalDisplay.innerHTML = "";
+                    modalInfo.innerHTML = "";
+
+                    // 2. 設定標題與提示文字
+                    modalTitle.textContent = '工時存入結果';
+                    modalInfo.textContent = "本次人員累計總工時結果：";
+
+                    // 3. 跑迴圈把資料塞進 modalDisplay
+                    if (Array.isArray(recordResult)) {
+                        recordResult.forEach(item => {
+                            const li = document.createElement('li');
+                            const entries = Object.entries(item);
+
+                            if (entries.length > 0) {
+                                const [name, hours] = entries[0]; // 結構拆解：name = '', hours = 4
+                                if (hours === null) {
+                                    li.textContent = `${name}:存入失敗(日期時間重疊)`;
+                                }
+                                else {
+                                    li.textContent = `${name}：${hours} 小時`;
+                                } // 這樣就能漂亮顯示了！
+                            } else {
+                                li.textContent = JSON.stringify(item); // 防呆：如果萬一格式不對，至少看得到 JSON 字串
+                            }
+                            // 💡 備註：如果你的後端 data 陣列裡面是物件（例如：[{name: '張三', hours: 8}]）
+                            // 這裡就要改成 li.textContent = `員工: ${item.name}, 工時: ${item.hours}`;
+                            // 如果只是單純的字串陣列，用 item 即可。
+                            // li.textContent = item;
+
+                            modalDisplay.appendChild(li);
+                        });
+                        // }
+                    }
+
+
+                    // 💡 關鍵修正：等迴圈跑完、所有 li 都畫好後，再把 Modal 顯示出來！
+                    modal.classList.add('show');
+                })
+                .catch((error) => { console.error("輸入工時時發生錯誤", error) })
+        });
+
+
+
+        //modal 零星操作段(關閉)
+        // modal右上角的x關閉
+        const closeButton = document.querySelector('.close-button');
+        closeButton.addEventListener('click', function () {
+            modal.classList.remove('show');
+        });
+        // modal 確認鈕關閉
+        const confirmButton = document.querySelector('.confirm-button');
+        confirmButton.addEventListener('click', function () {
+            modal.classList.remove('show');
+        });
+
+        // 點擊modal以外的區域也關閉
+        window.addEventListener('click', function (event) {
+            if (event.target == modal) {
+                modal.classList.remove('show');
+            }
+        });
+
+    </script>
+
+
+</body>
+
+</html>
