@@ -26,6 +26,7 @@ python doubleLuck.py
 
 
 # Project Structure
+```
 Project/
 │
 ├── config.py
@@ -38,6 +39,7 @@ Project/
 ├── templates/      HTML templates
 │
 └── SQLmaintain/    Database operation modules
+```
 
 # Roadmap
 - [] Order Management System
