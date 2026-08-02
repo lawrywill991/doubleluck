@@ -12,7 +12,9 @@ Additional features are actively under development, including financial manageme
 * 👥 **Employee Management**: Record employee profiles and track work durations.
 * ⏳ **Upcoming Features**: Financial tracking, order management, and CRM.
 
-
+## Author
+Lawry (also known as Seed)
+GitHub: https://github.com/lawrywll991
 
 ## Installation
 ```bash
@@ -58,9 +60,7 @@ Additional features and enhancements will be added as the project evolves.
 
 
 
-## Author
 
-GitHub: https://github.com/lawrywll991
 
 ### Prerequisites
 * Python 3.11+
