@@ -13,8 +13,8 @@ Additional features are actively under development, including financial manageme
 * ⏳ **Upcoming Features**: Financial tracking, order management, and CRM.
 
 ## Author
-Lawry (also known as Seed)
-GitHub: https://github.com/lawrywll991
+* Lawry Lin (also known as Seed Lin)
+* GitHub: https://github.com/lawrywll991
 
 ## Installation
 ```bash
