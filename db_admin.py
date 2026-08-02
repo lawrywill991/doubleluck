@@ -109,7 +109,8 @@ def main():
         )
         if function_choice == "1" and table_choice.upper() == "A":
             data = UserTableCRUD.read_user_table()
-            print(data)
+            for user in data:
+                print(user)
             break  # 一次插入一筆就好(先別嫌煩)
         elif function_choice == "1" and table_choice.upper() == "B":
             worker = input("請輸入查詢對象 Enter=明細全查 \n")
