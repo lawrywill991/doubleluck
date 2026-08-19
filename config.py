@@ -1,7 +1,7 @@
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -26,3 +26,6 @@ def get_db_path():
 
 def get_secret_key():
     return require_env("FLASK_SECRET_KEY")
+
+def get_session_time():
+    return timedelta(minutes=30)
