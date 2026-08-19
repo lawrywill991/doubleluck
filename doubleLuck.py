@@ -2,12 +2,13 @@ import flask
 from flask import render_template
 
 from SQLmaintain import WorkingTimeTableCRUD, DataTransfer, EmployeeTableCRUD,ProductsTableCRUD,CustomerTableCRUD,UserTableCRUD
-from config import get_db_path,get_secret_key
+from config import get_db_path,get_secret_key,get_session_time
 
 doubleluck = flask.Flask(__name__)
 
 doubleluck.secret_key = get_secret_key()
 database=get_db_path()
+doubleluck.config["PERMANENT_SESSION_LIFETIME"]=get_session_time()
 
 @doubleluck.route("/login", methods=["GET", "POST"])
 def login():
@@ -19,6 +20,7 @@ def login():
         if  access_bool:
             user_data=message["user_data"]
             flask.session["login"] = True
+            flask.session.permanent = True
             flask.session["username"] = user_data["user_name"]
             flask.session["employee_id"]= user_data["employee_no"]
             flask.session["account"] = user_data["account"]
