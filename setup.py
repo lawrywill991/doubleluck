@@ -30,13 +30,13 @@ REQUIRED_TRIGGER=["prevent_time_overlap","employee_quick"]
 
 class checks:
     @staticmethod
-    def check_env():
+    def check_env)->bool:
         """檢查 .env 是否存在"""
         if os.path.exists(ENV_FILE):
             return True
         return False
     @staticmethod
-    def read_env():
+    def read_env()->dict[str,str]:
         """讀取 .env，回傳 dict"""
 
         env = {}
@@ -57,7 +57,7 @@ class checks:
         return env
 
     @staticmethod
-    def check_db_file():
+    def check_db_file()->bool:
         """檢查 DB_FILE是否存在"""
         if os.path.exists(DB_PATH_ABS):
             return True
@@ -65,7 +65,7 @@ class checks:
 
     
     @staticmethod
-    def check_env_items(env):
+    def check_env_items(env)->tuple[list]:
         key_missing = []
         value_missing=[]
         for item in REQUIRED_ENV:
@@ -77,7 +77,7 @@ class checks:
 
 
     @staticmethod
-    def check_tables():
+    def check_tables()->tuple[list]:
         tables=database_manager.check_tables(database=DB_PATH_ABS)
         exist_tables=[]
         missing_tables=[]
@@ -89,7 +89,7 @@ class checks:
         return exist_tables,missing_tables
 
     @staticmethod
-    def check_triggers():
+    def check_triggers()->tuple[list]:
         triggers=database_manager.check_trigger()
 
         exist_triggers=[]
@@ -101,7 +101,7 @@ class checks:
                 missing_triggers.append(trigger)
         return exist_triggers,missing_triggers
     @staticmethod
-    def check_empty_tables():
+    def check_empty_tables()->list:
         tables={"user":UserTableCRUD.read_user_table(),
         "employee":EmployeeTableCRUD.read_employee_table()[1],
         "validation":UserTableCRUD.validation_infomations(),
@@ -112,7 +112,7 @@ class checks:
         #     print(name, type(data), data)
         # return "測試中" 
     @staticmethod
-    def final_check():
+    def final_check()->dict[str,bool]:
         pass_steps={}
         if checks.check_env() and  not checks.check_env_items(checks.read_env())[1]:
             pass_steps.update({"env_check":True})
@@ -152,7 +152,7 @@ class initializations:
             env_setting=env_setting + item + "=" + env[item]+"\n"
         return env_setting
     @staticmethod
-    def complete_tables(missing_tables:list):
+    def complete_tables(missing_tables:list)->None:
         for table in missing_tables:
             if table=="user":
                 UserTableCRUD.create_user_table()
@@ -168,7 +168,7 @@ class initializations:
                 UserTableCRUD.validation_table_build()
 
     @staticmethod
-    def complete_triggers(missing_trigger:list):
+    def complete_triggers(missing_trigger:list)->None:
         for trigger in missing_trigger:
             if trigger == "prevent_time_overlap":
                 WorkingTimeTableCRUD.create_time_trigger()
@@ -176,7 +176,7 @@ class initializations:
                 EmployeeTableCRUD.create_status_trigger()
 
     @staticmethod
-    def create_basic_employee_data():
+    def create_basic_employee_data()->None:
         employee_name = input("請輸入員工姓名:\n")
         employee_no = input("請輸入員工編號:\n")
         employee_role = input("請輸入員工職位:\n")
@@ -186,7 +186,7 @@ class initializations:
         # print(insert_result)
         print(message)
     @staticmethod
-    def create_basic_user_data():
+    def create_basic_user_data()->None:
         user_name = input("請輸入使用者名稱:\n")
         employee_no = input("請輸入使用者員工編號: \n")
         account = input("請輸入帳號:\n")
@@ -197,14 +197,14 @@ class initializations:
         print(insert_result)
 
     @staticmethod
-    def create_basic_validation_data():
+    def create_basic_validation_data()->None:
         validation_key=input("請輸入驗證問題:\n")
         validation_value=input("請輸入驗證答案:\n")
         message=UserTableCRUD.validation_data_build(validation_key,validation_value)
         print(message)
 
     @staticmethod
-    def create_basic_products():
+    def create_basic_products()->None:
         product_name = input("請輸入產品名稱\n")
         spec = input("請輸入產品規格\n")
         price = int(input("請輸入建議售價\n"))
@@ -213,7 +213,7 @@ class initializations:
                     product_name, spec, price, product_code)
         print(message)
 
-def lazy_process(Excel_PATH_ABS):
+def lazy_process(Excel_PATH_ABS)->None:
     user_table=pd.read_excel(Excel_PATH_ABS,sheet_name="使用帳號表",engine="openpyxl")
     employee_table=pd.read_excel(Excel_PATH_ABS,sheet_name="員工表",engine="openpyxl")
     product_table=pd.read_excel(Excel_PATH_ABS,sheet_name="產品表",engine="openpyxl")
