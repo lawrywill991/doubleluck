@@ -28,4 +28,4 @@ def get_secret_key():
     return require_env("FLASK_SECRET_KEY")
 
 def get_session_time():
-    return timedelta(minutes=30)
+    return timedelta(minutes=30) 

@@ -6,6 +6,7 @@ from config import get_db_path,get_secret_key,get_session_time
 
 doubleluck = flask.Flask(__name__)
 
+
 doubleluck.secret_key = get_secret_key()
 database=get_db_path()
 doubleluck.config["PERMANENT_SESSION_LIFETIME"]=get_session_time()
@@ -24,6 +25,7 @@ def login():
             flask.session["username"] = user_data["user_name"]
             flask.session["employee_id"]= user_data["employee_no"]
             flask.session["account"] = user_data["account"]
+            flask.session["permisson"]=True #之後要來這裡改權限傳遞
             return flask.jsonify({"status":access_bool,"message": "welcome,"})
         else:
             return flask.jsonify({"status":access_bool,"message":f"{message["falure_message"]}"})
@@ -69,7 +71,7 @@ def reset_password():
     new_password=reset_password_info.get("new_password")
     confirm_password=reset_password_info.get("confirm_password")
     password=reset_password_info.get("origin_password")
-    print(f"前端來的資訊:{reset_password_info}")
+    # print(f"前端來的資訊:{reset_password_info}")
     if flask.session.get("temporary_login") ==True:
         login_check=True
     else:
