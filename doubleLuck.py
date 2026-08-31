@@ -2,9 +2,11 @@ import flask
 from flask import render_template
 
 from SQLmaintain import WorkingTimeTableCRUD, DataTransfer, EmployeeTableCRUD,ProductsTableCRUD,CustomerTableCRUD,UserTableCRUD
+from SQLmaintain import default_date_range
 from config import get_db_path,get_secret_key,get_session_time
 
 doubleluck = flask.Flask(__name__)
+
 
 doubleluck.secret_key = get_secret_key()
 database=get_db_path()
@@ -24,6 +26,7 @@ def login():
             flask.session["username"] = user_data["user_name"]
             flask.session["employee_id"]= user_data["employee_no"]
             flask.session["account"] = user_data["account"]
+            flask.session["permisson"]=True #之後要來這裡改權限傳遞
             return flask.jsonify({"status":access_bool,"message": "welcome,"})
         else:
             return flask.jsonify({"status":access_bool,"message":f"{message["falure_message"]}"})
@@ -69,7 +72,7 @@ def reset_password():
     new_password=reset_password_info.get("new_password")
     confirm_password=reset_password_info.get("confirm_password")
     password=reset_password_info.get("origin_password")
-    print(f"前端來的資訊:{reset_password_info}")
+    # print(f"前端來的資訊:{reset_password_info}")
     if flask.session.get("temporary_login") ==True:
         login_check=True
     else:
@@ -117,6 +120,7 @@ def add_Duration():
         return flask.redirect(flask.url_for("login"))
 
     working_data = flask.request.get_json()
+    
     _, worker_dicts = EmployeeTableCRUD.read_employee_table()
     worker_dicts = DataTransfer(worker_dicts).to_worker_dicts(nick_name=False)
     
@@ -151,8 +155,9 @@ def add_Duration():
         if not success:
             worker_duration = None
         else:
+            start_date,end_date=default_date_range()
             worker_record = WorkingTimeTableCRUD.read_work_time_table(
-                worker, full_record=False
+                worker,start_date,end_date
             )
             if worker_record:
                 worker_duration = DataTransfer(worker_record).get_duration_sum()
