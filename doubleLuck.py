@@ -157,7 +157,7 @@ def add_Duration():
         else:
             start_date,end_date=default_date_range()
             worker_record = WorkingTimeTableCRUD.read_work_time_table(
-                worker,recorder,start_date,end_date
+                worker,None,start_date,end_date
             )
             if worker_record:
                 worker_duration = DataTransfer(worker_record).get_duration_sum()
@@ -175,7 +175,8 @@ def get_personal_duration():
     else:
         user = flask.session["username"]
         data = []
-        worker_record = WorkingTimeTableCRUD.read_work_time_table(user)
+        start_date,end_date=default_date_range()
+        worker_record = WorkingTimeTableCRUD.read_work_time_table(user,None,start_date,end_date)
         print(worker_record)
         if worker_record is not None:
             worker_duration = DataTransfer(worker_record).get_duration_sum()
