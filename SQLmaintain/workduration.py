@@ -121,33 +121,33 @@ class WorkingTimeTableCRUD:
             return False, f"發生錯誤:{e}"
 
     @staticmethod
-    def read_work_time_table(worker=None, full_record=False):
-        today = date.today()
-        year = today.year
-        if today.month <= 9:
-            start_date = date(year - 1, 9, 30)
-        else:
-            start_date = date(year, 10, 1)
+    def read_work_time_table(worker=None, recoder=None, start_date=date(2025,9,1),end_date=date.today())->list[dict]:
+        column_dict={"worker":worker,"recoder":recoder}
+        data_dict={k:v for k,v in column_dict.items() if v is not None}
+        data_keys=list(data_dict.keys())
+        
+        condition_columns=[]
+        for key in data_keys:
+            key += "=?"
+            condition_columns.append(key)
+        condition_statement=" AND ".join(condition_columns)
+        #---------處理時間範圍邏輯
+        if start_date<date(2025,9,1):
+            start_date=date(2025,9,1)
+        if start_date != date(2025,9,1) or end_date!=date.today():
+            # print("進入日期範圍搜尋")
+            condition_statement=" AND ".join([condition_statement,"work_date BETWEEN ? AND ?"])
+            start_str=str(start_date)
+            end_str=str(end_date)
+            data_dict.update({"starte_date":start_str,"end_date":end_str})
+        #-----處理時間範圍邏輯結束，開始組query與value
+        values=list(data_dict.values())       
+        sql = f"""SELECT * FROM work_time WHERE {condition_statement}"""
+
         database=get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
-            if worker != None and not full_record:
-                query = f"SELECT * FROM work_time WHERE worker=? AND work_date BETWEEN ? AND ?"
-                data = (worker, start_date, today)
-                cursor.execute(query, data)
-            elif worker != None and full_record:
-                query = f"SELECT * FROM work_time WHERE worker=?"
-                data = (worker,)
-                cursor.execute(query, data)
-            elif worker == None and not full_record:
-                query = (
-                    f"SELECT * FROM work_time WHERE work_date BETWEEN ? AND ?"
-                )
-                data = (start_date, today)
-                cursor.execute(query, data)
-            else:
-                query = "SELECT * FROM work_time"
-                cursor.execute(query)
+            cursor.execute(sql,values)
             work_times = cursor.fetchall()
             columns = [col[0] for col in cursor.description]
             data = [dict(zip(columns, row)) for row in work_times]
