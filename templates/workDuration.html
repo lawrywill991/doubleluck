@@ -113,7 +113,7 @@
             display: grid;
             justify-content: space-around;
             /* Distribute items evenly */
-            
+
             grid-template-columns: repeat(10, 1fr);
             /* margin-bottom: 10px; */
             /* Space between rows */
@@ -205,14 +205,14 @@
 
         <label>選擇項目:</label>
         <div class="checkbox-group">
-            
+
             <div class="checkbox-row">
                 {% for emp_id, name in workers.items() %}
                 <input type="checkbox" id="{{ emp_id }}" name="item" value="{{ emp_id }}">
                 <label for="{{ emp_id }}">{{ name }}</label>
                 {% endfor %}
             </div>
-            
+
         </div>
         <div class="form-group">
             <label for="work-date">選擇日期：</label>
@@ -297,8 +297,10 @@
         const modalTitle = document.getElementById('modalTitle')
         const modalDisplay = document.getElementById('modalDisplay');
 
-        submitButton.addEventListener('click', (event) => {
+        submitButton.addEventListener('click', async (event) => {
             event.preventDefault(); //小括號加event，並寫上這行的話代表阻止表單點擊後自動重新整理網頁！
+            submitButton.disabled = true
+            submitButton.textContent = '請稍候...';
             //前端資料打包段
             const checkedWorkers = document.querySelectorAll('input[name="item"]:checked');
             const workers = Array.from(checkedWorkers).map(el => el.value);
@@ -312,7 +314,8 @@
             const workContent = document.getElementById("workContent").value
             let object1 = { "workers": workers, "date": date, "start_time": startTime, "end_time": endTime, "duration": duration, "workContent": workContent }
             // console.log(object1)
-            fetch("/insertDuration", {
+
+            await fetch("/insertDuration", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -366,6 +369,7 @@
                     modal.classList.add('show');
                 })
                 .catch((error) => { console.error("輸入工時時發生錯誤", error) })
+                .finally(() => { submitButton.disabled = false; submitButton.textContent = '存入' })
         });
 
 
