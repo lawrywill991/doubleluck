@@ -53,7 +53,8 @@ class ProductsTableCRUD:
         database=get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
-            ## 其實更好是用動態寫法 conditions=[] data=[] + append() 然後 query += " WHERE " + " OR ".join(where) 但稍微難讀。
+            ## 其實更好是用動態寫法 conditions=[] data=[] + append() 然後 query += " WHERE " + " OR ".join(where) 但超出我現階段的能力。
+            ## 要改就可以參考product.py裡面的read_order_table()寫法
             if product_name != None and spec != None:
                 query = (
                     "SELECT * FROM products WHERE product_name = ? and spec =?"
@@ -78,6 +79,22 @@ class ProductsTableCRUD:
                 columns = [col[0] for col in cursor.description]
                 products_data = [dict(zip(columns, row)) for row in products]
                 return True, products_data
+
+    @staticmethod #第一個包屎山代碼的經驗!(不想改read_products_table的架構了)
+    def read_product_info(product_code) -> dict | None:
+        database=get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor=con.cursor()
+            query="SELECT * FROM products WHERE product_code=?"
+            data=(product_code,)
+            cursor.execute(query,data)
+            product=cursor.fetchone()
+            if not product:
+                return None
+            else:
+                columns = [col[0] for col in cursor.description]
+                products_data = dict(zip(columns,product))
+                return products_data
 
     @staticmethod
     def read_products_for_flask(product_class="pomelo"):

@@ -21,9 +21,9 @@ class EmployeeTableCRUD:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_no TEXT NOT NULL UNIQUE,
             employee_name TEXT NOT NULL,
-            department TEXT,
+            department TEXT REFERENCES role(department),
             status INTEGER DEFAULT 1,
-            role TEXT ,
+            role TEXT REFERENCES role(role_name),
             phone TEXT,
             personal_email TEXT,
             create_by TEXT ,
@@ -32,40 +32,7 @@ class EmployeeTableCRUD:
             cursor.execute(query)
             con.commit()
 
-    @staticmethod
-    def create_role_table():
-        database=get_db_path()
-        with sqlite3.connect(database) as con:
-            cursor = con.cursor()
-            query = """CREATE TABLE role (
-            id INTEGER PRIMARY KEY,
-            role_name TEXT NOT NULL UNIQUE,            
-            create_by TEXT DEFAULT 'admin',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );"""
-            cursor.execute(query)
-            con.commit()
-
-    @staticmethod
-    def insert_role(role_name):
-        database=get_db_path()
-        with sqlite3.connect(database) as con:
-            cursor = con.cursor()
-            query = "INSERT INTO role (role_name) Values(?)"
-            data = (role_name,)
-            cursor.execute(query, data)
-            con.commit()
-
-    @staticmethod
-    def read_role():
-        database=get_db_path()
-        with sqlite3.connect(database) as con:
-            cursor = con.cursor()
-            query = "SELECT * FROM role "
-            cursor.execute(query)
-            roles = cursor.fetchall()
-        return roles
-
+    
     @staticmethod ##員工編號取消自動建立，這函式先留著
     def create_number_trigger(table="employee"):
         database=get_db_path()
@@ -114,7 +81,7 @@ class EmployeeTableCRUD:
         employee_no,
         employee_name,
         role,
-        department=None,
+        department,
         phone=None,
         personal_email=None,
         create_by="admin",
@@ -122,7 +89,7 @@ class EmployeeTableCRUD:
         try:
             database=get_db_path()
             with sqlite3.connect(database) as con:
-
+                con.execute("PRAGMA foreign_keys = ON;")
                 cursor = con.cursor()
                 query = "INSERT INTO employee (employee_no,employee_name,department,role,phone,personal_email,create_by) VALUES (?,?,?,?,?,?,?)"
                 data = (
@@ -136,19 +103,10 @@ class EmployeeTableCRUD:
                 )
                 cursor.execute(query, data)
                 con.commit()
-            with sqlite3.connect(
-                database
-            ) as con:  # 之前用trigger建流水號而需要的，但後來設計考量不用trigger了，但還是先留著吧
-                cursor = con.cursor()
-                query = (
-                    f"SELECT employee_no FROM employee WHERE employee_name=?"
-                )
-                data = (employee_name,)
-                cursor.execute(query, data)
-                employ_no = cursor.fetchone()
+
             return (
                 True,
-                f"{create_by}已將{employee_name}建立成功，員工編號:{employ_no}",
+                f"{create_by}已將{employee_name}建立成功，員工編號:{employee_no}",
             )
         except Exception as e:
             traceback.print_exc()
@@ -491,3 +449,80 @@ class UserTableCRUD:
                 return False
         else:
             return False 
+
+class RoleTableCRUD:
+    @staticmethod
+    def create_role_table():
+        database=get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            query = """CREATE TABLE role (
+            id INTEGER PRIMARY KEY,
+            role_name TEXT NOT NULL,
+            department TEXT NOT NULL,
+            HR_sys INTEGER CHECK(HR_sys IN(0,10,20,30))  DEFAULT 0,
+            finance_sys INTEGER CHECK(finance_sys IN(0,10,20,30)) DEFAULT 0,
+            order_sys INTEGER CHECK(order_sys IN(0,10,20,30)) DEFAULT 0,
+            create_by TEXT DEFAULT 'admin',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );"""
+            cursor.execute(query)
+            con.commit()
+
+    @staticmethod
+    def insert_role(role_name,department,HR_sys,finance_sys,order_sys):
+        database=get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            query = "INSERT INTO role (role_name,department,HR_sys,finance_sys,order_sys) Values(?,?,?,?,?)"
+            data = (role_name,department,HR_sys,finance_sys,order_sys)
+            cursor.execute(query, data)
+            con.commit()
+
+    @staticmethod
+    def read_role():
+        database=get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            query = "SELECT * FROM role "
+            cursor.execute(query)
+            roles = cursor.fetchall()
+        return roles
+
+    @staticmethod
+    def delete_role(id):
+        database=get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            query = "DELETE FROM role WHERE id=?"
+            data = (id,)
+            cursor.execute(query, data)
+            con.commit()
+        return f"已從role表格中刪除{id}紀錄"
+
+    @staticmethod
+    def read_personal_permission(employee_no):
+        database=get_db_path()
+        with sqlite3.connect(database) as con:
+           cursor = con.cursor()
+           query ="""SELECT
+                    e.employee_name,
+                    r.HR_sys,
+                    r.finance_sys,
+                    r.order_sys
+                FROM employee AS e
+                INNER JOIN role AS r
+                    ON e.role = r.role_name
+                    AND e.department = r.department
+                WHERE e.employee_no = ?;"""
+           data=(employee_no,)
+           cursor.execute(query,data)
+           roles = cursor.fetchall()
+           columns = [col[0] for col in cursor.description]
+           user_promission = [dict(zip(columns, row)) for row in roles]
+        return user_promission
+"""
+        ALTER TABLE Orders
+ADD CONSTRAINT FK_Orders_Customer
+FOREIGN KEY (CustomerID)
+REFERENCES Customers(CustomerID);"""
