@@ -592,12 +592,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # boll=has_db_file()
-    # # print(boll)
-    # Excel_PATH_ABS=r"D:\從桌面移過來較無使用的檔案\藥劑刪減會議\不符合bluesign明細\逐月資料\整理Python\好事成雙\schema.xlsx"
-    # customer_table=pd.read_excel(Excel_PATH_ABS,sheet_name="客戶資料表",engine="openpyxl",dtype={"customer_phone": str})
-    # tester_phone=customer_table["customer_phone"]
-    # print(tester_phone)
-    # import datetime 
-    # input_date=check_datetime_formuler("2024.8.6")
-    # print(input_date)
