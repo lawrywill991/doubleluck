@@ -124,8 +124,9 @@ def main():
             "請選擇要操作的資料表：A.使用者資料表 B.工作時間資料表 C.員工資料表 D:產品規格表 E:客戶資料表 F:職位權限表 G:訂單資料表\n"
         )
         if function_choice == "1" and table_choice.upper() == "A":
-            data = UserTableCRUD.read_user_table()
-            print(data)
+            datas = UserTableCRUD.read_user_table()
+            for data in datas:
+                print(data)
             break  # 一次插入一筆就好(先別嫌煩)
         elif function_choice == "1" and table_choice.upper() == "B":
             worker = input("請輸入查詢對象 Enter=明細全查 \n")
