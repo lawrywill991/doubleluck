@@ -14,8 +14,11 @@ Additional features are actively under development, including financial manageme
 
 
 ## Change Logs
-* v1.1.0 Add a section to display detailed work durations as requested by the user.(2026-09-08)
+* v1.1.0 Add a section to display detailed work hours as requested by the user.(2026-09-08)
 
+## Author
+* Lawry Lin (also known as Seed Lin)
+* GitHub: https://github.com/lawrywll991
 
 
 ## Installation
@@ -41,6 +44,7 @@ Project/
 │
 └── SQLmaintain/    Database operation modules
 ```
+
 # Roadmap
 - [] Order Management System
 - [] Financial Management System
@@ -48,18 +52,15 @@ Project/
 Additional features and enhancements will be added as the project evolves.
 
 # Screenshots
-![登入畫面](show up photos/IMG_6668.PNG)
-![忘記密碼的暫時性登入]()
-![主功能頁](圖片網址)(超連結網址)
-![主功能頁-查詢自己已記錄的工時](圖片網址)
-![暫時性登入後才可重設密碼](圖片網址)
+![登入畫面](show%20up%20photos/IMG_6668.PNG)
+![忘記密碼的暫時性登入](show%20up%20photos/IMG_6669.PNG)
+![主功能頁](show%20up%20photos/IMG_6670.PNG)
+![主功能頁-查詢自己已記錄的工時](show%20up%20photos/IMG_6671.PNG)
+![暫時性登入後才可重設密碼](show%20up%20photos/IMG_6677.PNG)
 
-![工時紀錄功能](圖片網址)
-![工時輸入成功](圖片網址)
-![工時輸入失敗](圖片網址)
-
-
-
+![工時紀錄功能](show%20up%20photos/IMG_6672.PNG)
+![工時輸入成功](show%20up%20photos/IMG_6673.PNG)
+![工時輸入失敗](show%20up%20photos/IMG_6674.PNG)
 
 
 ## Author
