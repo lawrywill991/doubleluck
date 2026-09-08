@@ -2,9 +2,11 @@ import flask
 from flask import render_template
 
 from SQLmaintain import WorkingTimeTableCRUD, DataTransfer, EmployeeTableCRUD,ProductsTableCRUD,CustomerTableCRUD,UserTableCRUD
+from SQLmaintain import default_date_range
 from config import get_db_path,get_secret_key,get_session_time
 
 doubleluck = flask.Flask(__name__)
+
 
 doubleluck.secret_key = get_secret_key()
 database=get_db_path()
@@ -24,6 +26,7 @@ def login():
             flask.session["username"] = user_data["user_name"]
             flask.session["employee_id"]= user_data["employee_no"]
             flask.session["account"] = user_data["account"]
+            flask.session["permisson"]=True #之後要來這裡改權限傳遞
             return flask.jsonify({"status":access_bool,"message": "welcome,"})
         else:
             return flask.jsonify({"status":access_bool,"message":f"{message["falure_message"]}"})
@@ -69,14 +72,14 @@ def reset_password():
     new_password=reset_password_info.get("new_password")
     confirm_password=reset_password_info.get("confirm_password")
     password=reset_password_info.get("origin_password")
-    print(f"前端來的資訊:{reset_password_info}")
+    # print(f"前端來的資訊:{reset_password_info}")
     if flask.session.get("temporary_login") ==True:
         login_check=True
     else:
         account=flask.session.get("account")
         login_check,_= UserTableCRUD.login_check(account,password)
-        
-    if login_check:       
+
+    if login_check:
         employee_no=flask.session.get("employee_id")
         print(employee_no)
         if confirm_password==new_password:
@@ -117,26 +120,27 @@ def add_Duration():
         return flask.redirect(flask.url_for("login"))
 
     working_data = flask.request.get_json()
+
     _, worker_dicts = EmployeeTableCRUD.read_employee_table()
     worker_dicts = DataTransfer(worker_dicts).to_worker_dicts(nick_name=False)
-    
+
     recorder = flask.session["employee_id"]
-    
+
     # 提取共用參數
     work_date = working_data["date"]
     start_time = working_data["start_time"]
     end_time = working_data["end_time"]
     duration = working_data["duration"]
     work_description = working_data["workContent"]
-    
+
     data = []
-    
+
     # 將寫入與計算合併在同一個迴圈，減少重複走訪
     for worker_no in working_data["workers"]:
         worker = worker_dicts[worker_no]
         worker_name = worker
         worker_nick_name = worker[-1]
-        
+
         # 1. 寫入資料庫
         success, _ = WorkingTimeTableCRUD.insert_work_time(
             worker_name,
@@ -147,18 +151,19 @@ def add_Duration():
             work_description,
             recorder,
         )
-        
+
         if not success:
             worker_duration = None
         else:
+            start_date,end_date=default_date_range()
             worker_record = WorkingTimeTableCRUD.read_work_time_table(
-                worker, full_record=False
+                worker,None,start_date,end_date
             )
             if worker_record:
                 worker_duration = DataTransfer(worker_record).get_duration_sum()
             else:
                 worker_duration = 0
-                
+
         data.append({worker_nick_name: worker_duration})
 
     return flask.jsonify({"status": True, "data": data})
@@ -170,8 +175,9 @@ def get_personal_duration():
     else:
         user = flask.session["username"]
         data = []
-        worker_record = WorkingTimeTableCRUD.read_work_time_table(user)
-        print(worker_record)
+        start_date,end_date=default_date_range()
+        worker_record = WorkingTimeTableCRUD.read_work_time_table(user,None,start_date,end_date)
+        #print(worker_record)
         if worker_record is not None:
             worker_duration = DataTransfer(worker_record).get_duration_sum()
             worker_data = {user: worker_duration}
@@ -181,6 +187,19 @@ def get_personal_duration():
             worker_data = {user: 0}
             data.append(worker_data)
             return flask.jsonify({"status": True, "data": data})
+
+@doubleluck.route("/duration/recentRecords",methods=["GET"])
+def to_Duration_page():
+    if flask.session.get("login") != True:
+        return flask.redirect(flask.url_for("login"))
+    else:
+        username = flask.session.get("username")
+        # print(username)
+        records=WorkingTimeTableCRUD.read_personal_duration_list(username)
+        # print(records)
+        return flask.render_template("latestDuration.html",username=username,records=records)
+
+
 
 @doubleluck.route("/order/create",methods=["GET"])
 def to_create_order_page():
@@ -206,7 +225,7 @@ def search_customer():
         # customer_adress = customer_data['byerAdress']
         receiver_name=customer_data['receivername']
         checkresult,SQL_data=CustomerTableCRUD.read_customer_for_flask(customer_name)
-        
+
         print(checkresult)
         print(SQL_data)
         if not checkresult and not isinstance(SQL_data,list):

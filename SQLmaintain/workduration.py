@@ -121,33 +121,35 @@ class WorkingTimeTableCRUD:
             return False, f"發生錯誤:{e}"
 
     @staticmethod
-    def read_work_time_table(worker=None, full_record=False):
-        today = date.today()
-        year = today.year
-        if today.month <= 9:
-            start_date = date(year - 1, 9, 30)
-        else:
-            start_date = date(year, 10, 1)
+    def read_work_time_table(worker=None, recorder=None, start_date=None,end_date=None)->list[dict]:
+        search_columns=[]
+        search_values=[]
+        if worker is not None:
+            search_columns.append("worker=?")
+            search_values.append(worker)
+        if recorder is not None:
+            search_columns.append("recorder=?")
+            search_values.append(recorder)
+        if start_date is not None and end_date is not None:
+            if start_date <=date(2025,10,1):
+                start_date=date(2025,10,1)
+            search_columns.append("work_date BETWEEN ? AND ?")
+            search_values.append(str(start_date))
+            search_values.append(str(end_date))
+
+        sql = "SELECT * FROM work_time"
+        if search_columns:
+            sql += " WHERE " + " AND ".join(search_columns)
+        # print(sql)
+        # print(search_values)
+
         database=get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
-            if worker != None and not full_record:
-                query = f"SELECT * FROM work_time WHERE worker=? AND work_date BETWEEN ? AND ?"
-                data = (worker, start_date, today)
-                cursor.execute(query, data)
-            elif worker != None and full_record:
-                query = f"SELECT * FROM work_time WHERE worker=?"
-                data = (worker,)
-                cursor.execute(query, data)
-            elif worker == None and not full_record:
-                query = (
-                    f"SELECT * FROM work_time WHERE work_date BETWEEN ? AND ?"
-                )
-                data = (start_date, today)
-                cursor.execute(query, data)
+            if search_columns==[]:
+                cursor.execute(sql)
             else:
-                query = "SELECT * FROM work_time"
-                cursor.execute(query)
+                cursor.execute(sql,search_values)
             work_times = cursor.fetchall()
             columns = [col[0] for col in cursor.description]
             data = [dict(zip(columns, row)) for row in work_times]
@@ -188,3 +190,21 @@ class WorkingTimeTableCRUD:
 
         grouped_df = full_df.groupby("worker")["duration"].sum()
         return grouped_df
+
+    @staticmethod
+    def read_personal_duration_list(worker,No_of_data=5)->list|None:
+        database=get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor=con.cursor()
+            query=f"""SELECT wt.work_date, wt.duration, e.employee_name AS recorder FROM work_time AS wt 
+            JOIN employee AS e ON wt.recorder = e.employee_no
+            WHERE worker = ? ORDER BY wt.id DESC LIMIT ?;"""
+            values=(worker,No_of_data)
+            cursor.execute(query,values)
+            personal_duration=cursor.fetchall()
+        if personal_duration !=[]:
+            columns = [col[0] for col in cursor.description]
+            data = [dict(zip(columns, row)) for row in personal_duration]
+            return data
+        else:
+            return []

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>最近工時紀錄</title>
+	<style>
+		:root {
+			--page-bg: #f4f4f4;
+			--panel-bg: #ffffff;
+			--text: #333333;
+			--muted-text: #666666;
+			--line: #e5e5e5;
+			--primary: #007bff;
+			--primary-hover: #0056b3;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			padding: 20px;
+			background-color: var(--page-bg);
+			color: var(--text);
+			font-family: Arial, sans-serif;
+		}
+
+		.container {
+			width: 100%;
+			max-width: 400px;
+			margin: 0 auto;
+			padding: 20px;
+			background-color: var(--panel-bg);
+			border-radius: 8px;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		}
+
+		h1 {
+			margin: 0 0 20px;
+			color: var(--text);
+			font-size: 24px;
+			line-height: 1.45;
+			text-align: center;
+		}
+
+		.records {
+			margin: 0;
+			padding: 0;
+			list-style: none;
+		}
+
+		.record {
+			padding: 14px 4px;
+			border-bottom: 1px solid var(--line);
+		}
+
+		.record:first-child {
+			padding-top: 4px;
+		}
+
+		.record-date {
+			margin: 0 0 7px;
+			font-size: 17px;
+			font-weight: bold;
+		}
+
+		.record-detail {
+			margin: 0;
+			color: var(--muted-text);
+			font-size: 16px;
+			line-height: 1.5;
+		}
+
+		.empty-message {
+			padding: 16px 4px;
+			color: var(--muted-text);
+			text-align: center;
+		}
+
+		.notice {
+			margin: 20px 0;
+			color: var(--muted-text);
+			font-size: 14px;
+			line-height: 1.6;
+			text-align: center;
+		}
+
+		.btn-link {
+			display: block;
+			width: 100%;
+			padding: 12px 20px;
+			border-radius: 4px;
+			background-color: var(--primary);
+			color: #ffffff;
+			font-size: 18px;
+			text-align: center;
+			text-decoration: none;
+		}
+
+		.btn-link:hover,
+		.btn-link:focus {
+			background-color: var(--primary-hover);
+			color: #ffffff;
+		}
+	</style>
+</head>
+
+<body>
+	<main class="container">
+		<h1>{{ username}}，您的最近五筆工時紀錄如下：</h1>
+
+		<ul class="records" id="duration-records">
+			{% for record in records %}
+			<li class="record" data-record-index="{{ loop.index0 }}">
+				<p class="record-date">{{ record.work_date}}</p>
+				<p class="record-detail">{{ record.duration}} 小時&nbsp;&nbsp;紀錄者:{{ record.recorder}}
+				</p>
+			</li>
+			{% else %}
+			<li class="empty-message">目前沒有工時紀錄。</li>
+			{% endfor %}
+		</ul>
+
+		<p class="notice">如有誤，請聯繫系統管理員修改。</p>
+		<a href="/" class="btn-link">返回首頁</a>
+	</main>
+
+	<script>
+		document.addEventListener("DOMContentLoaded", () => {
+			const records = document.querySelectorAll("[data-record-index]");
+
+			records.forEach((record, index) => {
+				record.dataset.actionsReady = "true";
+
+				// 可以在這裡加入點擊事件或其他互動邏輯
+				record.addEventListener("click", () => {
+					console.log(`點擊了第 ${index + 1} 筆記錄`);
+				});
+			});
+		});
+	</script>
+</body>
+
+</html>

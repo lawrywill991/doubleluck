@@ -2,13 +2,16 @@ import re
 import sqlite3
 import string
 import random
+from datetime import datetime,date
+from dateutil import parser
+
 
 from config import get_db_path
 
 
 
 class DataTransfer:  # 要回傳資料給前端時把read結果解析的方法集
-    def __init__(self, data: list):
+    def __init__(self, data: list[dict]):
         self.data = data
 
     def get_keys(self):
@@ -163,3 +166,58 @@ def generated_randompassword():
     generated_randompassword="".join(random.choices(aproved_alphabet,k=6))
 
     return generated_randompassword
+
+def check_internal_id_format(internal_id)->tuple[bool,str|None,str]:
+    if not isinstance(internal_id, str):
+        return False,None,f"傳入數值非文字格式"
+    if re.fullmatch(r"Cn\d{2}-\d{3}", internal_id):
+        return True,internal_id,"customer_id"
+    elif re.fullmatch(r"On\d{2}-\d{4}",internal_id):
+        return True,internal_id,"order_id"
+    elif re.fullmatch(r"PTL\d{2}",internal_id):
+        return True,internal_id,"employee_no"
+    elif re.fullmatch(r"SHR\d{2}",internal_id):
+        return True,internal_id,"employee_no"
+    else:
+        return False,None,"not internal used id" 
+
+def check_datetime_formuler(input_date_formuler)->tuple[bool,date|str]:
+    
+    try:
+        if isinstance(input_date_formuler,date):
+            return True,input_date_formuler 
+        input_date_formuler=input_date_formuler.strip()
+        m=re.fullmatch(r"\s*(\d{3})[./-](\d{1,2})[./-](\d{1,2})\s*",input_date_formuler)
+        if m: 
+            year, month, day = map(int, m.groups())
+            return True,date(year+1911,month,day)
+        else:
+            return True,parser.parse(input_date_formuler).date()
+        
+    except Exception as e:
+        return False,f"{e}"
+
+def date_compliarty(start_date,end_date)->bool:
+    bool1,start_date = check_datetime_formuler(start_date)
+    bool2,end_date  = check_datetime_formuler(end_date)
+    
+    if not bool1 or not bool2: 
+        return False
+    assert isinstance(start_date, date)
+    assert isinstance(end_date, date)
+    if start_date>end_date:
+        return False
+    else:
+        return True
+
+
+def default_date_range():
+    today = date.today()
+    year = today.year
+    if today.month <= 9:
+        start_date = date(year - 1, 9, 30)
+    else:
+        start_date = date(year, 10, 1)
+    return start_date,today
+    
+        
