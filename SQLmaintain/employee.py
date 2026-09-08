@@ -364,7 +364,7 @@ class UserTableCRUD:
             if secur.check_password_hash(password_hash,password):
                 UserTableCRUD.update_login_record(True,account,try_times=try_times)
                 min_user_info=DataTransfer(user_list).remove_information(information_keys=("id","created_at","password","last_fail_login","fail_login_times"))
-                print(min_user_info)
+                # print(min_user_info)
                 return True,{"user_data":min_user_info[0],"falure_message":None}
             else:
                 try_times +=1
