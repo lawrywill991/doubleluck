@@ -14,7 +14,7 @@ Additional features are actively under development, including financial manageme
 
 
 ## Change Logs
-* v1.1.0 Add a section to display detailed work hours as requested by the user.(2026-09-08)
+* v1.1.0 Add a section to display detailed work durations as requested by the user.(2026-09-08)
 
 ## Installation
 ```bash
