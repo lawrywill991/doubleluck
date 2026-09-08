@@ -24,7 +24,7 @@ python doubleLuck.py
 ```
 - For non-technical users, please refer to USER_GUIDE.md.
 
-
+```
 # Project Structure
 Project/
 │
@@ -38,7 +38,7 @@ Project/
 ├── templates/      HTML templates
 │
 └── SQLmaintain/    Database operation modules
-
+```
 # Roadmap
 - [] Order Management System
 - [] Financial Management System
