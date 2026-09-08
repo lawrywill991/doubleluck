@@ -78,8 +78,8 @@ def reset_password():
     else:
         account=flask.session.get("account")
         login_check,_= UserTableCRUD.login_check(account,password)
-        
-    if login_check:       
+
+    if login_check:
         employee_no=flask.session.get("employee_id")
         print(employee_no)
         if confirm_password==new_password:
@@ -120,27 +120,27 @@ def add_Duration():
         return flask.redirect(flask.url_for("login"))
 
     working_data = flask.request.get_json()
-    
+
     _, worker_dicts = EmployeeTableCRUD.read_employee_table()
     worker_dicts = DataTransfer(worker_dicts).to_worker_dicts(nick_name=False)
-    
+
     recorder = flask.session["employee_id"]
-    
+
     # 提取共用參數
     work_date = working_data["date"]
     start_time = working_data["start_time"]
     end_time = working_data["end_time"]
     duration = working_data["duration"]
     work_description = working_data["workContent"]
-    
+
     data = []
-    
+
     # 將寫入與計算合併在同一個迴圈，減少重複走訪
     for worker_no in working_data["workers"]:
         worker = worker_dicts[worker_no]
         worker_name = worker
         worker_nick_name = worker[-1]
-        
+
         # 1. 寫入資料庫
         success, _ = WorkingTimeTableCRUD.insert_work_time(
             worker_name,
@@ -151,7 +151,7 @@ def add_Duration():
             work_description,
             recorder,
         )
-        
+
         if not success:
             worker_duration = None
         else:
@@ -163,7 +163,7 @@ def add_Duration():
                 worker_duration = DataTransfer(worker_record).get_duration_sum()
             else:
                 worker_duration = 0
-                
+
         data.append({worker_nick_name: worker_duration})
 
     return flask.jsonify({"status": True, "data": data})
@@ -177,7 +177,7 @@ def get_personal_duration():
         data = []
         start_date,end_date=default_date_range()
         worker_record = WorkingTimeTableCRUD.read_work_time_table(user,None,start_date,end_date)
-        print(worker_record)
+        #print(worker_record)
         if worker_record is not None:
             worker_duration = DataTransfer(worker_record).get_duration_sum()
             worker_data = {user: worker_duration}
@@ -187,6 +187,19 @@ def get_personal_duration():
             worker_data = {user: 0}
             data.append(worker_data)
             return flask.jsonify({"status": True, "data": data})
+
+@doubleluck.route("/duration/recentRecords",methods=["GET"])
+def to_Duration_page():
+    if flask.session.get("login") != True:
+        return flask.redirect(flask.url_for("login"))
+    else:
+        username = flask.session.get("username")
+        # print(username)
+        records=WorkingTimeTableCRUD.read_personal_duration_list(username)
+        # print(records)
+        return flask.render_template("latestDuration.html",username=username,records=records)
+
+
 
 @doubleluck.route("/order/create",methods=["GET"])
 def to_create_order_page():
@@ -212,7 +225,7 @@ def search_customer():
         # customer_adress = customer_data['byerAdress']
         receiver_name=customer_data['receivername']
         checkresult,SQL_data=CustomerTableCRUD.read_customer_for_flask(customer_name)
-        
+
         print(checkresult)
         print(SQL_data)
         if not checkresult and not isinstance(SQL_data,list):

@@ -1,13 +1,13 @@
 import sys
 # print(sys.path)
-from SQLmaintain import EmployeeTableCRUD,UserTableCRUD,WorkingTimeTableCRUD,ProductsTableCRUD,CustomerTableCRUD,RoleTableCRUD,OrderTableCRUD
+from SQLmaintain import EmployeeTableCRUD,UserTableCRUD,WorkingTimeTableCRUD,ProductsTableCRUD,RoleTableCRUD,CustomerTableCRUD,OrderTableCRUD
 from SQLmaintain import database_manager,check_phone,DataTransfer,check_internal_id_format,check_datetime_formuler,date_compliarty
 
 from datetime import date
 # import pandas as pd
 
 def main():
-    
+
     while True:
         function_choice = input(
             "請選擇要執行的功能：1.查看資料表完整內容 2.輸入單筆資料 3.更新單一欄位 0.退出\n"
@@ -127,7 +127,7 @@ def main():
             datas = UserTableCRUD.read_user_table()
             for data in datas:
                 print(data)
-            break  # 一次插入一筆就好(先別嫌煩)
+            break
         elif function_choice == "1" and table_choice.upper() == "B":
             worker = input("請輸入查詢對象 Enter=明細全查 \n")
             _, employee_data = EmployeeTableCRUD.read_employee_table()
@@ -142,7 +142,7 @@ def main():
                     worker=None
                     break
                 worker=input("查無該工作者，請重新輸入查詢對象 Enter=明細全查 \n")
-                 
+
             start_date = input("請輸入查詢起始日期 Enter=資料庫起用日 \n")
             if start_date =="":
                 start_date="2025-10-01"
@@ -157,7 +157,7 @@ def main():
             bool_e,end_date=check_datetime_formuler(end_date)
             while not bool_e:
                 end_date = input("起始日期不合法，請重新輸入 \n")
-                bool_e,end_date=check_datetime_formuler(end_date) 
+                bool_e,end_date=check_datetime_formuler(end_date)
             # print(employee_name_list)
             recorder = None
             assert isinstance(start_date,date)
@@ -166,7 +166,7 @@ def main():
             if not date_compliance:
                 print("日期前後打錯，請重來")
                 sys.exit()
-                
+
             work_records = WorkingTimeTableCRUD.read_work_time_table(
                                     worker,recorder,start_date,end_date
                                 )
@@ -200,7 +200,7 @@ def main():
                     continue
                 else:
                     break
-            
+
             customer_name=input("請輸入客戶姓名\n")
             if customer_name=="":
                 customer_name=None
@@ -288,7 +288,7 @@ def main():
             customer_address = input("請輸入客戶地址: \n")
             payment_method = input ("請選擇客戶習慣付款方式 1:Cash 2:Transfer\n")
             payment_dict={"1":"Cash","2":"Transfer"}
-            
+
             if payment_method not in payment_dict.keys():
                 raise KeyError("付款只有現金與匯款方式")
             transfer_account=None
@@ -336,7 +336,7 @@ def main():
             while True:
                 customer_id=input("請輸入客戶編號或客戶姓名\n")
                 if customer_id[0]== "C" and customer_id[1]=="n":
-                    result=CustomerTableCRUD.read_customer_table(customer_id)    
+                    result=CustomerTableCRUD.read_customer_table(customer_id)
                 else:
                     result=CustomerTableCRUD.read_customer_table(customer_name=customer_id)
                 if result is None:
@@ -360,7 +360,7 @@ def main():
             print(result)
 
             break
-                    
+
 #加速尋找: 以上為INSERT區；以下為UPDATE區
 
         elif function_choice == "3" and table_choice.upper() == "C":
@@ -392,7 +392,7 @@ def main():
                     print(updated_message)
                 elif column =="payment_method" and new_data not in ["Cash","Transfer"]:
                     print("修改付款方式的話不能只改付款方式欄位")
-                    
+
                 else:
                     _, updated_message = CustomerTableCRUD.update_customer(
                         customer_id, column, new_data
@@ -586,6 +586,10 @@ def main():
         elif function_choice=="T" and table_choice.upper()=="E":
             result=OrderTableCRUD.order_fuzzy_search("林智")
             print(result)
+        elif function_choice=="T" and table_choice.upper()=="B":
+            worker="林智群"
+            result=WorkingTimeTableCRUD.read_personal_duration_list(worker)
+            print(result)
         else:
             print("無效的選擇，請重新輸入。")
             break
@@ -599,6 +603,6 @@ if __name__ == "__main__":
     # customer_table=pd.read_excel(Excel_PATH_ABS,sheet_name="客戶資料表",engine="openpyxl",dtype={"customer_phone": str})
     # tester_phone=customer_table["customer_phone"]
     # print(tester_phone)
-    # import datetime 
+    # import datetime
     # input_date=check_datetime_formuler("2024.8.6")
     # print(input_date)
