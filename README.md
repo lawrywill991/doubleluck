@@ -12,6 +12,9 @@ Additional features are actively under development, including financial manageme
 * 👥 **Employee Management**: Record employee profiles and track work durations.
 * ⏳ **Upcoming Features**: Financial tracking, order management, and CRM.
 
+## Change Logs
+* v1.1.0 Add a section to display detailed work hours as requested by the user.(2026-09-08)
+
 ## Author
 * Lawry Lin (also known as Seed Lin)
 * GitHub: https://github.com/lawrywll991
