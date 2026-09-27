@@ -1,6 +1,6 @@
 import sqlite3
 import traceback
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 
 import werkzeug.security as secur
 import bcrypt
@@ -9,12 +9,11 @@ from .SQLutils import DataTransfer
 from config import get_db_path
 
 
-
 class EmployeeTableCRUD:
     @staticmethod
     def create_enployee_table(database=None):
         if database is None:
-            database=get_db_path()
+            database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = """CREATE TABLE employee (
@@ -32,10 +31,9 @@ class EmployeeTableCRUD:
             cursor.execute(query)
             con.commit()
 
-    
-    @staticmethod ##員工編號取消自動建立，這函式先留著
+    @staticmethod  ##員工編號取消自動建立，這函式先留著
     def create_number_trigger(table="employee"):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = f"""CREATE TRIGGER trg_employee_no
@@ -52,7 +50,7 @@ class EmployeeTableCRUD:
 
     @staticmethod  # 員工離職順手刪帳號
     def create_status_trigger(table="employee"):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = f"""CREATE TRIGGER employee_quick
@@ -68,7 +66,7 @@ class EmployeeTableCRUD:
 
     @staticmethod
     def drop_number_trigger(trigger_name="trg_employee_no"):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = f"""DROP TRIGGER IF EXISTS {trigger_name}"""
@@ -87,7 +85,7 @@ class EmployeeTableCRUD:
         create_by="admin",
     ):
         try:
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 con.execute("PRAGMA foreign_keys = ON;")
                 cursor = con.cursor()
@@ -114,7 +112,7 @@ class EmployeeTableCRUD:
 
     @staticmethod
     def read_employee_table(employee_name=None, status=1):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             if employee_name != None and status == 1:
@@ -138,7 +136,7 @@ class EmployeeTableCRUD:
 
     @staticmethod
     def read_employee_for_flask():
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = "SELECT * FROM employee WHERE status=?"
@@ -168,7 +166,7 @@ class EmployeeTableCRUD:
             if (column == "employee_name" and new_data is None) or (
                 column == "status" and new_data == "0"
             ):
-                database=get_db_path()
+                database = get_db_path()
                 with sqlite3.connect(database) as con:
                     cursor = con.cursor()
                     query = f"UPDATE employee SET status=? WHERE employee_no=?"
@@ -178,7 +176,7 @@ class EmployeeTableCRUD:
 
                 return True, f"已將{employee_no} 狀態改為0(離職)"
             elif column in columns:
-                database=get_db_path()
+                database = get_db_path()
                 with sqlite3.connect(database) as con:
                     cursor = con.cursor()
                     query = (
@@ -196,7 +194,7 @@ class EmployeeTableCRUD:
 
     @staticmethod
     def delete_employee(id):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = "DELETE FROM employee WHERE id=?"
@@ -204,12 +202,13 @@ class EmployeeTableCRUD:
             cursor.execute(query, data)
             con.commit()
         return f"已從employee表格中刪除{id}紀錄"
-    
+
+
 class UserTableCRUD:
     @staticmethod
     def create_user_table(database=None):
         if database is None:
-            database=get_db_path()
+            database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = """CREATE TABLE IF NOT EXISTS user(
@@ -232,7 +231,7 @@ class UserTableCRUD:
     def insert_user(user_name, employee_no, account, password, email):
         try:
             password = secur.generate_password_hash(password)
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 con.execute("PRAGMA foreign_keys = ON;")
                 cursor = con.cursor()
@@ -246,23 +245,23 @@ class UserTableCRUD:
             return f"發生錯誤:{e}"
 
     @staticmethod
-    def read_user_table(user_name=None,account=None):
+    def read_user_table(user_name=None, account=None):
         if user_name is not None or account is not None:
-            column_dict={"user_name":user_name,"account":account}
-            data_dict={k:v for k,v in column_dict.items() if v is not None}
-            data_keys=list(data_dict.keys())
+            column_dict = {"user_name": user_name, "account": account}
+            data_dict = {k: v for k, v in column_dict.items() if v is not None}
+            data_keys = list(data_dict.keys())
             # print(data_keys)
-            condition_columns=[]
+            condition_columns = []
             for key in data_keys:
                 key += "=?"
                 condition_columns.append(key)
-            condition_statement=" AND ".join(condition_columns)
-            values=list(data_dict.values())
+            condition_statement = " AND ".join(condition_columns)
+            values = list(data_dict.values())
 
             sql = f"""SELECT * FROM user WHERE {condition_statement}"""
             # print(sql)
             # print(values)
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 cursor.execute(sql, tuple(values))
@@ -271,7 +270,7 @@ class UserTableCRUD:
                 user_data = [dict(zip(columns, row)) for row in user]
                 return user_data
         else:
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 query = "SELECT * FROM user"
@@ -283,7 +282,7 @@ class UserTableCRUD:
 
     @staticmethod
     def delete_user(id, user_name=None):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             if user_name != None:
@@ -295,17 +294,18 @@ class UserTableCRUD:
             cursor.execute(query, data)
             con.commit()
         return f"已從user表格中刪除{id}的資料"
+
     @staticmethod
     def update_user(employee_no, column, new_data):
         try:
-            if column=="password":
-               new_data=secur.generate_password_hash(new_data)
-            database=get_db_path() 
+            if column == "password":
+                new_data = secur.generate_password_hash(new_data)
+            database = get_db_path()
             with sqlite3.connect(database) as con:
-                cursor=con.cursor()
-                query=f"UPDATE user SET {column}=? WHERE employee_no=?"
-                data=(new_data,employee_no)
-                cursor.execute(query,data)
+                cursor = con.cursor()
+                query = f"UPDATE user SET {column}=? WHERE employee_no=?"
+                data = (new_data, employee_no)
+                cursor.execute(query, data)
                 if cursor.rowcount == 0:
                     return False
                 con.commit()
@@ -313,147 +313,181 @@ class UserTableCRUD:
         except:
             traceback.print_exc()
             return False
-        
+
     @staticmethod
-    def update_login_record(login_boll,account,try_times=0):
-        now=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    def update_login_record(login_boll, account, try_times=0):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if login_boll:
-            query="UPDATE user SET last_login=?,fail_login_times=? WHERE account=?"
-            data=(now,0,account)
-        elif 1<try_times<6:
-            query="UPDATE user SET fail_login_times=fail_login_times + 1 WHERE account=?"
-            data=(account,)
+            query = "UPDATE user SET last_login=?,fail_login_times=? WHERE account=?"
+            data = (now, 0, account)
+        elif 1 < try_times < 6:
+            query = "UPDATE user SET fail_login_times=fail_login_times + 1 WHERE account=?"
+            data = (account,)
         else:
-            query="UPDATE user SET last_fail_login=?,fail_login_times=fail_login_times + 1 WHERE account=?"
-            data=(now,account)
-        database=get_db_path()
+            query = "UPDATE user SET last_fail_login=?,fail_login_times=fail_login_times + 1 WHERE account=?"
+            data = (now, account)
+        database = get_db_path()
         with sqlite3.connect(database) as con:
-            cursor=con.cursor()
-            cursor.execute(query,data)
+            cursor = con.cursor()
+            cursor.execute(query, data)
             con.commit()
 
     @staticmethod
-    def user_locked(user_data:dict):
-        last_login= user_data["last_login"]
-        fail_login_times= int(user_data['fail_login_times'])
-        last_fail_login= user_data["last_fail_login"]
-        if last_login is None and fail_login_times==0:
+    def user_locked(user_data: dict):
+        last_login = user_data["last_login"]
+        fail_login_times = int(user_data["fail_login_times"])
+        last_fail_login = user_data["last_fail_login"]
+        if last_login is None and fail_login_times == 0:
             return False
         elif last_fail_login is None:
             return False
         else:
-            last_fail_login=datetime.strptime(last_fail_login,"%Y-%m-%d %H:%M:%S")
-            now=datetime.now()
-            deltatime=now-last_fail_login
-            if deltatime>timedelta(minutes=30):
-                return False 
+            last_fail_login = datetime.strptime(
+                last_fail_login, "%Y-%m-%d %H:%M:%S"
+            )
+            now = datetime.now()
+            deltatime = now - last_fail_login
+            if deltatime > timedelta(minutes=30):
+                return False
             else:
-                return (deltatime < timedelta(minutes=30)and fail_login_times >= 5)
-            
-    @staticmethod
-    def login_check(account,password):
-        user_list=UserTableCRUD.read_user_table(account=account)
-        if user_list==[] or len(user_list)>1:
-            return False,{"user_data":None,"falure_message":"no users_account"}
-        user=user_list[0]
-        try_times=int(user['fail_login_times'])
-        is_locked=UserTableCRUD.user_locked(user)
-        if not is_locked:
-            password_hash=user['password']
-            if secur.check_password_hash(password_hash,password):
-                UserTableCRUD.update_login_record(True,account,try_times=try_times)
-                min_user_info=DataTransfer(user_list).remove_information(information_keys=("id","created_at","password","last_fail_login","fail_login_times"))
-                # print(min_user_info)
-                return True,{"user_data":min_user_info[0],"falure_message":None}
-            else:
-                try_times +=1
-                UserTableCRUD.update_login_record(False,account,try_times=try_times)
-                return False,{"user_data":None,"falure_message":"login faliure"}
-        else:
-            return False,{"user_data":None,"falure_message":"Too often login"}
+                return (
+                    deltatime < timedelta(minutes=30) and fail_login_times >= 5
+                )
 
     @staticmethod
-    def validation_data_build(relationship,author_name):
-        relationship=bcrypt.hashpw(relationship.encode("utf-8"),bcrypt.gensalt())
-        author_name=bcrypt.hashpw(author_name.encode("utf-8"),bcrypt.gensalt())
-        database=get_db_path()
+    def login_check(account, password):
+        user_list = UserTableCRUD.read_user_table(account=account)
+        if user_list == [] or len(user_list) > 1:
+            return False, {
+                "user_data": None,
+                "falure_message": "no users_account",
+            }
+        user = user_list[0]
+        try_times = int(user["fail_login_times"])
+        is_locked = UserTableCRUD.user_locked(user)
+        if not is_locked:
+            password_hash = user["password"]
+            if secur.check_password_hash(password_hash, password):
+                UserTableCRUD.update_login_record(
+                    True, account, try_times=try_times
+                )
+                min_user_info = DataTransfer(user_list).remove_information(
+                    information_keys=(
+                        "id",
+                        "created_at",
+                        "password",
+                        "last_fail_login",
+                        "fail_login_times",
+                    )
+                )
+                # print(min_user_info)
+                return True, {
+                    "user_data": min_user_info[0],
+                    "falure_message": None,
+                }
+            else:
+                try_times += 1
+                UserTableCRUD.update_login_record(
+                    False, account, try_times=try_times
+                )
+                return False, {
+                    "user_data": None,
+                    "falure_message": "login faliure",
+                }
+        else:
+            return False, {
+                "user_data": None,
+                "falure_message": "Too often login",
+            }
+
+    @staticmethod
+    def validation_data_build(relationship, author_name):
+        relationship = bcrypt.hashpw(
+            relationship.encode("utf-8"), bcrypt.gensalt()
+        )
+        author_name = bcrypt.hashpw(
+            author_name.encode("utf-8"), bcrypt.gensalt()
+        )
+        database = get_db_path()
         with sqlite3.connect(database) as con:
-            cursor=con.cursor()
-            
-            query2="INSERT INTO validation (key,value) VALUES(?,?)"
-            data=(relationship,author_name)
-            cursor.execute(query2,data)
+            cursor = con.cursor()
+
+            query2 = "INSERT INTO validation (key,value) VALUES(?,?)"
+            data = (relationship, author_name)
+            cursor.execute(query2, data)
 
             con.commit()
 
         return "成功建立validation資料"
-    
+
     @staticmethod
-    def validation_table_build(database= None):
+    def validation_table_build(database=None):
         if database is None:
-            database=get_db_path()
+            database = get_db_path()
         with sqlite3.connect(database) as con:
-            cursor=con.cursor()
-            query="CREATE TABLE IF NOT EXISTS validation (key BLOB NOT NULL,value BLOB NOT NULL)"
+            cursor = con.cursor()
+            query = "CREATE TABLE IF NOT EXISTS validation (key BLOB NOT NULL,value BLOB NOT NULL)"
             cursor.execute(query)
             con.commit()
             return True
 
     @staticmethod
     def validation_infomations():
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
-            cursor=con.cursor()
-            query="SELECT * FROM validation"
+            cursor = con.cursor()
+            query = "SELECT * FROM validation"
             cursor.execute(query)
-            validation_info=cursor.fetchall()
+            validation_info = cursor.fetchall()
             if validation_info:
                 return validation_info
             else:
                 return []
 
-
     @staticmethod
-    def validation_sequence(account,verify_email,relationship,name):
-        user_info=UserTableCRUD.read_user_table(account=account)
-        if user_info==None or len(user_info)>1:
+    def validation_sequence(account, verify_email, relationship, name):
+        user_info = UserTableCRUD.read_user_table(account=account)
+        if user_info == None or len(user_info) > 1:
             return False
-        email=user_info[0]["email"]
-        id=user_info[0]["id"]
-        user_name=user_info[0]["user_name"]
-        emplyee_no=user_info[0]["employee_no"]
-        is_locked=UserTableCRUD.user_locked(user_info[0])
+        email = user_info[0]["email"]
+        id = user_info[0]["id"]
+        user_name = user_info[0]["user_name"]
+        emplyee_no = user_info[0]["employee_no"]
+        is_locked = UserTableCRUD.user_locked(user_info[0])
         if is_locked:
             return False
-        elif verify_email==email:
-            database=get_db_path()
+        elif verify_email == email:
+            database = get_db_path()
             with sqlite3.connect(database) as con:
-                cursor=con.cursor()
-                query="SELECT * FROM validation"
+                cursor = con.cursor()
+                query = "SELECT * FROM validation"
                 cursor.execute(query)
-                vlidation_info=cursor.fetchall()
-        # print(vlidation_info)
-            relation_hash=vlidation_info[0][0]
-            name_hash=vlidation_info[0][1]
-            check=bcrypt.checkpw(relationship.encode("utf-8"),relation_hash) and bcrypt.checkpw(name.encode("utf-8"),name_hash)
+                vlidation_info = cursor.fetchall()
+            # print(vlidation_info)
+            relation_hash = vlidation_info[0][0]
+            name_hash = vlidation_info[0][1]
+            check = bcrypt.checkpw(
+                relationship.encode("utf-8"), relation_hash
+            ) and bcrypt.checkpw(name.encode("utf-8"), name_hash)
             if check:
-                now=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                UserTableCRUD.update_user(emplyee_no,"last_login",now)
-                UserTableCRUD.update_user(emplyee_no,"last_fail_login",now)
-                UserTableCRUD.update_user(emplyee_no,"fail_login_times",6)
-                
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                UserTableCRUD.update_user(emplyee_no, "last_login", now)
+                UserTableCRUD.update_user(emplyee_no, "last_fail_login", now)
+                UserTableCRUD.update_user(emplyee_no, "fail_login_times", 6)
+
                 return True
             else:
-                UserTableCRUD.delete_user(id,user_name)
+                UserTableCRUD.delete_user(id, user_name)
                 return False
         else:
-            return False 
+            return False
+
 
 class RoleTableCRUD:
     @staticmethod
     def create_role_table():
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = """CREATE TABLE role (
@@ -470,18 +504,18 @@ class RoleTableCRUD:
             con.commit()
 
     @staticmethod
-    def insert_role(role_name,department,HR_sys,finance_sys,order_sys):
-        database=get_db_path()
+    def insert_role(role_name, department, HR_sys, finance_sys, order_sys):
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = "INSERT INTO role (role_name,department,HR_sys,finance_sys,order_sys) Values(?,?,?,?,?)"
-            data = (role_name,department,HR_sys,finance_sys,order_sys)
+            data = (role_name, department, HR_sys, finance_sys, order_sys)
             cursor.execute(query, data)
             con.commit()
 
     @staticmethod
     def read_role():
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = "SELECT * FROM role "
@@ -491,7 +525,7 @@ class RoleTableCRUD:
 
     @staticmethod
     def delete_role(id):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = "DELETE FROM role WHERE id=?"
@@ -502,10 +536,10 @@ class RoleTableCRUD:
 
     @staticmethod
     def read_personal_permission(employee_no):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
-           cursor = con.cursor()
-           query ="""SELECT
+            cursor = con.cursor()
+            query = """SELECT
                     e.employee_name,
                     r.HR_sys,
                     r.finance_sys,
@@ -515,12 +549,14 @@ class RoleTableCRUD:
                     ON e.role = r.role_name
                     AND e.department = r.department
                 WHERE e.employee_no = ?;"""
-           data=(employee_no,)
-           cursor.execute(query,data)
-           roles = cursor.fetchall()
-           columns = [col[0] for col in cursor.description]
-           user_promission = [dict(zip(columns, row)) for row in roles]
+            data = (employee_no,)
+            cursor.execute(query, data)
+            roles = cursor.fetchall()
+            columns = [col[0] for col in cursor.description]
+            user_promission = [dict(zip(columns, row)) for row in roles]
         return user_promission
+
+
 """
         ALTER TABLE Orders
 ADD CONSTRAINT FK_Orders_Customer
