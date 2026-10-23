@@ -714,7 +714,7 @@ def main():
                     customer_phone,
                     customer_address,
                     recorder,
-                    payment_method=order_data["pridict_payment_method"],
+                    payment_method=order_data["predict_payment_method"],
                 )
                 print(new_customer)
                 customer_info = CustomerTableCRUD.read_customer_table(
