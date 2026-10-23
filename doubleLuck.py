@@ -1,16 +1,32 @@
 import flask
 from flask import render_template
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-from SQLmaintain import WorkingTimeTableCRUD, DataTransfer, EmployeeTableCRUD,ProductsTableCRUD,CustomerTableCRUD,UserTableCRUD
-from SQLmaintain import default_date_range
-from config import get_db_path,get_secret_key,get_session_time
+from SQLmaintain import (
+    WorkingTimeTableCRUD,
+    DataTransfer,
+    EmployeeTableCRUD,
+    ProductsTableCRUD,
+    CustomerTableCRUD,
+    UserTableCRUD,
+    OrderTableCRUD,
+)
+from SQLmaintain import (
+    default_date_range,
+    calculate_reserved_amount,
+    check_oder_data,
+    order_taking_date_check,
+)
+from config import get_db_path, get_secret_key, get_session_time
 
 doubleluck = flask.Flask(__name__)
 
 
 doubleluck.secret_key = get_secret_key()
-database=get_db_path()
-doubleluck.config["PERMANENT_SESSION_LIFETIME"]=get_session_time()
+database = get_db_path()
+doubleluck.config["PERMANENT_SESSION_LIFETIME"] = get_session_time()
+
 
 @doubleluck.route("/login", methods=["GET", "POST"])
 def login():
@@ -18,18 +34,20 @@ def login():
         login_user = flask.request.get_json()
         account = login_user.get("account")
         password = login_user.get("password")
-        access_bool,message=UserTableCRUD.login_check(account,password)
-        if  access_bool:
-            user_data=message["user_data"]
+        access_bool, message = UserTableCRUD.login_check(account, password)
+        if access_bool:
+            user_data = message["user_data"]
             flask.session["login"] = True
             flask.session.permanent = True
             flask.session["username"] = user_data["user_name"]
-            flask.session["employee_id"]= user_data["employee_no"]
+            flask.session["employee_id"] = user_data["employee_no"]
             flask.session["account"] = user_data["account"]
-            flask.session["permisson"]=True #之後要來這裡改權限傳遞
-            return flask.jsonify({"status":access_bool,"message": "welcome,"})
+            flask.session["permisson"] = True  # 之後要來這裡改權限傳遞
+            return flask.jsonify({"status": access_bool, "message": "welcome,"})
         else:
-            return flask.jsonify({"status":access_bool,"message":f"{message["falure_message"]}"})
+            return flask.jsonify(
+                {"status": access_bool, "message": f"{message["falure_message"]}"}
+            )
 
     else:
         return flask.render_template("login.html")
@@ -41,55 +59,62 @@ def logout():
     print("登出測試")
     return flask.redirect(flask.url_for("login"))
 
+
 @doubleluck.route("/login/forgotpassword", methods=["POST"])
 def forgotpassword():
     if flask.request.method == "POST":
-        user_submit_info=flask.request.get_json()
-        account=user_submit_info.get("account")
-        email=user_submit_info.get("email")
-        relationship=user_submit_info.get("relationship")
-        name=user_submit_info.get("name")
-        user_identity=UserTableCRUD.validation_sequence(account,email,relationship,name)
+        user_submit_info = flask.request.get_json()
+        account = user_submit_info.get("account")
+        email = user_submit_info.get("email")
+        relationship = user_submit_info.get("relationship")
+        name = user_submit_info.get("name")
+        user_identity = UserTableCRUD.validation_sequence(
+            account, email, relationship, name
+        )
         if user_identity:
-            user_data=UserTableCRUD.read_user_table(account=account)[0]
+            user_data = UserTableCRUD.read_user_table(account=account)[0]
             flask.session["login"] = True
             flask.session["username"] = user_data["user_name"]
-            flask.session["employee_id"]= user_data["employee_no"]
+            flask.session["employee_id"] = user_data["employee_no"]
             flask.session["username"] = user_data["user_name"]
             flask.session["account"] = user_data["account"]
             flask.session["temporary_login"] = True
-            return flask.jsonify({"status":True})
+            return flask.jsonify({"status": True})
         else:
-            return flask.jsonify({"status":False})
+            return flask.jsonify({"status": False})
     else:
         return flask.render_template("login.html")
 
-@doubleluck.route("/login/resetpassword",methods=["POST"])
+
+@doubleluck.route("/login/resetpassword", methods=["POST"])
 def reset_password():
-    if flask.session.get("login") !=True:
+    if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
-    reset_password_info=flask.request.get_json()
-    new_password=reset_password_info.get("new_password")
-    confirm_password=reset_password_info.get("confirm_password")
-    password=reset_password_info.get("origin_password")
+    reset_password_info = flask.request.get_json()
+    new_password = reset_password_info.get("new_password")
+    confirm_password = reset_password_info.get("confirm_password")
+    password = reset_password_info.get("origin_password")
     # print(f"前端來的資訊:{reset_password_info}")
-    if flask.session.get("temporary_login") ==True:
-        login_check=True
+    if flask.session.get("temporary_login") == True:
+        login_check = True
     else:
-        account=flask.session.get("account")
-        login_check,_= UserTableCRUD.login_check(account,password)
+        account = flask.session.get("account")
+        login_check, _ = UserTableCRUD.login_check(account, password)
 
     if login_check:
-        employee_no=flask.session.get("employee_id")
+        employee_no = flask.session.get("employee_id")
         print(employee_no)
-        if confirm_password==new_password:
-            result=UserTableCRUD.update_user(employee_no,"password",confirm_password)
+        if confirm_password == new_password:
+            result = UserTableCRUD.update_user(
+                employee_no, "password", confirm_password
+            )
             print(f"密碼重設結果:{result}")
-            return flask.jsonify({"status":True})
+            return flask.jsonify({"status": True})
         else:
-            return flask.jsonify({"status":False})
+            return flask.jsonify({"status": False})
     else:
-        return flask.jsonify({"status":False})
+        return flask.jsonify({"status": False})
+
 
 @doubleluck.route("/")
 def home():
@@ -155,9 +180,9 @@ def add_Duration():
         if not success:
             worker_duration = None
         else:
-            start_date,end_date=default_date_range()
+            start_date, end_date = default_date_range()
             worker_record = WorkingTimeTableCRUD.read_work_time_table(
-                worker,None,start_date,end_date
+                worker, None, start_date, end_date
             )
             if worker_record:
                 worker_duration = DataTransfer(worker_record).get_duration_sum()
@@ -168,6 +193,7 @@ def add_Duration():
 
     return flask.jsonify({"status": True, "data": data})
 
+
 @doubleluck.route("/readpersonalDuration", methods=["GET"])
 def get_personal_duration():
     if flask.session.get("login") != True:
@@ -175,9 +201,11 @@ def get_personal_duration():
     else:
         user = flask.session["username"]
         data = []
-        start_date,end_date=default_date_range()
-        worker_record = WorkingTimeTableCRUD.read_work_time_table(user,None,start_date,end_date)
-        #print(worker_record)
+        start_date, end_date = default_date_range()
+        worker_record = WorkingTimeTableCRUD.read_work_time_table(
+            user, None, start_date, end_date
+        )
+        # print(worker_record)
         if worker_record is not None:
             worker_duration = DataTransfer(worker_record).get_duration_sum()
             worker_data = {user: worker_duration}
@@ -188,53 +216,112 @@ def get_personal_duration():
             data.append(worker_data)
             return flask.jsonify({"status": True, "data": data})
 
-@doubleluck.route("/duration/recentRecords",methods=["GET"])
+
+@doubleluck.route("/duration/recentRecords", methods=["GET"])
 def to_Duration_page():
     if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
     else:
         username = flask.session.get("username")
         # print(username)
-        records=WorkingTimeTableCRUD.read_personal_duration_list(username)
+        records = WorkingTimeTableCRUD.read_personal_duration_list(username)
         # print(records)
-        return flask.render_template("latestDuration.html",username=username,records=records)
+        return flask.render_template(
+            "latestDuration.html", username=username, records=records
+        )
 
 
-
-@doubleluck.route("/order/create",methods=["GET"])
+@doubleluck.route("/order/new-order", methods=["GET"])
 def to_create_order_page():
     if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
     else:
         products = ProductsTableCRUD.read_products_for_flask()
-        freights= ProductsTableCRUD.read_products_for_flask(product_class='freight')
+        freights = ProductsTableCRUD.read_products_for_flask(product_class="freight")
         return flask.render_template(
-            "createOrder.html",
-            item=products,freights=freights
+            "createOrder.html", item=products, freights=freights
         )
 
-@doubleluck.route("/orders/search-customer",methods=["POST"])
+
+@doubleluck.route("/orders/search-customer", methods=["POST"])
 def search_customer():
     if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
     else:
         recorder = flask.session["employee_id"]
         customer_data = flask.request.get_json()
-        customer_name = customer_data['buyerName']
+        customer_name = customer_data["buyerName"]
         # customer_phone= customer_data['buyerPhone']
         # customer_adress = customer_data['byerAdress']
-        receiver_name=customer_data['receivername']
-        checkresult,SQL_data=CustomerTableCRUD.read_customer_for_flask(customer_name)
+        receiver_name = customer_data["receivername"]
+        checkresult, SQL_data = CustomerTableCRUD.read_customer_for_flask(customer_name)
 
         print(checkresult)
         print(SQL_data)
-        if not checkresult and not isinstance(SQL_data,list):
-            return flask.jsonify({"status":False,'data':None})
-        elif not checkresult and isinstance(SQL_data,list):
-            return flask.jsonify({"status":False,'data':SQL_data})
+        if not checkresult and not isinstance(SQL_data, list):
+            return flask.jsonify({"status": False, "data": None})
+        elif not checkresult and isinstance(SQL_data, list):
+            return flask.jsonify({"status": False, "data": SQL_data})
         else:
-            return flask.jsonify({"status":True,'data':SQL_data})
+            return flask.jsonify({"status": True, "data": SQL_data})
 
+
+@doubleluck.route("/order/create", methods=["POST"])
+def create_order():
+    today = datetime.now(ZoneInfo("Asia/Taipei")).date()
+    date_after_start = order_taking_date_check(today)
+    if flask.session.get("login") != True:
+        return flask.redirect(flask.url_for("login"))
+    elif date_after_start:
+        return flask.jsonify(False, "尚未開放key單")
+    else:
+        order_data = flask.request.get_json()
+        recorder = flask.session["employee_id"]
+        salse_record = OrderTableCRUD.get_sales_df(recorder)
+        reservation_weight = OrderTableCRUD.get_sales_reservation(salse_record)
+        reservation = calculate_reserved_amount(recorder)
+        data_check_bool, data_missing = check_oder_data(order_data)
+
+        product_code = order_data["product_code"]
+        new_qty = order_data["qty"]
+
+        customer_name = order_data["customer_name"]
+        customer_info = CustomerTableCRUD.read_customer_table(
+            customer_name=customer_name
+        )
+        if customer_info == []:
+            customer_phone = order_data["customer_phone"]
+            customer_address = order_data["customer_address"]
+            new_customer = CustomerTableCRUD.insert_customer(
+                customer_name, customer_phone, customer_address, recorder
+            )
+            print(new_customer)
+            customer_info = CustomerTableCRUD.read_customer_table(
+                customer_name=customer_name
+            )
+            customer_id = customer_info[0]["customer_id"]
+        else:
+            customer_id = customer_info[0]["customer_id"]
+
+        # 先寫非排單的部分
+        need_reserve_product = {
+            "pomelo-G-10": 10,
+            "pomelo-G-15": 15,
+            "pomelo-G-20": 20,
+            "pomelo-G-1": 1,
+        }
+        if order_data["product_code"] in need_reserve_product.keys():
+            new_weight = new_qty * need_reserve_product[order_data["product_code"]]
+            if reservation_weight + new_weight <= reservation:
+                pass
+            else:
+                pass
+        else:
+
+            pass
+
+        data = "testing"
+        return flask.jsonify({"status": True, "data": data})
 
 
 if __name__ == "__main__":
