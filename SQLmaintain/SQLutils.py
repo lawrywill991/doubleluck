@@ -148,13 +148,17 @@ class database_manager:
 def check_phone(phone_no):
     if not isinstance(phone_no, str):
         return False, phone_no, f"傳入數值非文字格式"
-    phone_no = re.sub(r"\D", "", phone_no)
+    phone_no = re.sub(r"[^\d#]", "", phone_no)
     if re.fullmatch(r"09\d{8}", phone_no):
         return True, phone_no, "mobile phone"
     elif re.fullmatch(r"0\d{9}", phone_no):
         return True, phone_no, "local phone"
     elif re.fullmatch(r"0\d{8}", phone_no):
         return True, phone_no, "local phone(other)"
+    elif re.fullmatch(r"0\d{9}#\d+", phone_no):
+        return True, phone_no, "local phone with Extension"
+    elif re.fullmatch(r"0\d{8}#\d+", phone_no):
+        return True, phone_no, "local phone with Extension"
     else:
         return False, None, "not a phone number"
 
@@ -206,8 +210,12 @@ def date_compliarty(start_date, end_date) -> bool:
 
     if not bool1 or not bool2:
         return False
-    assert isinstance(start_date, date)
-    assert isinstance(end_date, date)
+    assert isinstance(
+        start_date, date
+    )  # 防止日期物件跑到這邊錯亂了，所以加用assert防止資料流錯亂(也防止前面改動沒改到後面)
+    assert isinstance(
+        end_date, date
+    )  # assert另一層目的是讓pylance別吵，但pylance是正確的(type hint問題)
     if start_date > end_date:
         return False
     else:
