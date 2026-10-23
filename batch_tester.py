@@ -2,7 +2,8 @@ import pytest
 
 # from SQLmaintain import check_phone
 from datetime import date
-import requests
+
+# import requests
 from SQLmaintain import OrderTableCRUD
 
 
