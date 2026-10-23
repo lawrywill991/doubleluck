@@ -50,14 +50,14 @@ def main():
                 "work_time",
                 "employee",
                 "products",
-                "role",
+                # "role",
                 "customers",
                 "validation",
                 "orders",
             ]
             if set(tables) != set(necessary_tables):
                 table_choice = input(
-                    "目前還少table，請選擇建立：A.使用者資料表 B.工作時間資料表 c.員工資料表 D.職位列表 E.產品規格售價表 F:顧客資料表 G:訂單資料表 V:驗證資料, \n"
+                    "目前還少table，請選擇建立：A.使用者資料表 B.工作時間資料表 c.員工資料表 D. E.產品規格售價表 F:顧客資料表 G:訂單資料表 V:驗證資料, \n"
                 ).upper()
                 if table_choice == "A":
                     UserTableCRUD.create_user_table()
