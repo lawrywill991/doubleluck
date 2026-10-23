@@ -5,10 +5,10 @@ from config import get_db_path
 
 
 def create_order_table():
-        database=get_db_path()
-        with sqlite3.connect(database) as con:
-            cursor = con.cursor()
-            query = """CREATE TABLE orders (
+    database = get_db_path()
+    with sqlite3.connect(database) as con:
+        cursor = con.cursor()
+        query = """CREATE TABLE orders (
                     id INTEGER PRIMARY KEY,
                     order_id TEXT UNIQUE,
                     reserved TEXT NOT NULL CHECK(reserved IN('保留','排單')),
@@ -44,14 +44,15 @@ def create_order_table():
                     create_by TEXT NOT NULL REFERENCES employee(employee_no),
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     );"""
-            cursor.execute(query)
-            con.commit()
+        cursor.execute(query)
+        con.commit()
 
-def create_order_trigger(table="orders")->str:
-        database=get_db_path()
-        with sqlite3.connect(database) as con:
-            cursor = con.cursor()
-            query = f"""CREATE TRIGGER trg_order_id
+
+def create_order_trigger(table="orders") -> str:
+    database = get_db_path()
+    with sqlite3.connect(database) as con:
+        cursor = con.cursor()
+        query = f"""CREATE TRIGGER trg_order_id
             AFTER INSERT ON {table}
             FOR EACH ROW
             BEGIN
@@ -62,6 +63,6 @@ def create_order_trigger(table="orders")->str:
                 printf('%04d', NEW.id)
                 WHERE id = NEW.id;
             END;"""
-            cursor.execute(query)
-            con.commit()
-        return f"{table}表格的Trigger: trg_order_id 建立成功"
+        cursor.execute(query)
+        con.commit()
+    return f"{table}表格的Trigger: trg_order_id 建立成功"
