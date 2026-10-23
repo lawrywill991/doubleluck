@@ -1,10 +1,37 @@
 import sys
-# print(sys.path)
-from SQLmaintain import EmployeeTableCRUD,UserTableCRUD,WorkingTimeTableCRUD,ProductsTableCRUD,RoleTableCRUD,CustomerTableCRUD,OrderTableCRUD
-from SQLmaintain import database_manager,check_phone,DataTransfer,check_internal_id_format,check_datetime_formuler,date_compliarty
 
-from datetime import date
+# print(sys.path)
+from SQLmaintain import (
+    EmployeeTableCRUD,
+    UserTableCRUD,
+    WorkingTimeTableCRUD,
+    ProductsTableCRUD,
+    RoleTableCRUD,
+    CustomerTableCRUD,
+    OrderTableCRUD,
+)
+from SQLmaintain import (
+    database_manager,
+    check_phone,
+    DataTransfer,
+    check_internal_id_format,
+    check_datetime_formuler,
+    date_compliarty,
+    calculate_reserved_amount,
+)
+from SQLmaintain import (
+    order_taking_date_check,
+    order_reserving_date_check,
+    check_oder_data,
+)
+from migrations import create_order_table, create_order_trigger
+
+
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
 # import pandas as pd
+
 
 def main():
 
@@ -15,9 +42,7 @@ def main():
         if function_choice == "0":
             print("退出程式。")
             sys.exit()
-        if (
-            function_choice == "ZZ"
-        ):  # 查詢db檔內容或創建、刪除表格(都只能單次操作)
+        if function_choice == "ZZ":  # 查詢db檔內容或創建、刪除表格(都只能單次操作)
             tables = database_manager.check_tables()
             print(tables)
             necessary_tables = [
@@ -28,7 +53,7 @@ def main():
                 "role",
                 "customers",
                 "validation",
-                "orders"
+                "orders",
             ]
             if set(tables) != set(necessary_tables):
                 table_choice = input(
@@ -41,9 +66,7 @@ def main():
                 elif table_choice == "B":
                     WorkingTimeTableCRUD.create_work_time_table()
                     print("工作時間資料表已創建成功！")
-                    trigger_add_result = (
-                        WorkingTimeTableCRUD.create_time_trigger()
-                    )
+                    trigger_add_result = WorkingTimeTableCRUD.create_time_trigger()
                     print(trigger_add_result)
                     break
                 elif table_choice == "C":
@@ -58,17 +81,17 @@ def main():
                     RoleTableCRUD.create_role_table()
                     print("職位表已創建成功!")
                     break
-                elif table_choice =="V":
-                    relation=input("請輸入關係: \n")
-                    name= input("請輸入人名:\n")
+                elif table_choice == "V":
+                    relation = input("請輸入關係: \n")
+                    name = input("請輸入人名:\n")
                     UserTableCRUD.validation_table_build()
-                    result=UserTableCRUD.validation_data_build(relation,name)
+                    result = UserTableCRUD.validation_data_build(relation, name)
                     print(result)
                 elif table_choice == "F":
                     CustomerTableCRUD.create_customer_table()
                     print("顧客資料表已創建成功!")
                 elif table_choice == "G":
-                    OrderTableCRUD.create_order_table()
+                    create_order_table()
                     print("訂單資料表已創建成功!")
                 else:
                     print("暫無預設表格可輸入，請聯繫程式作者")
@@ -79,8 +102,8 @@ def main():
             if table_deal == "0":
                 print("退出db_manager")
                 continue
-            elif table_deal =="C":
-                result=database_manager.check_trigger()
+            elif table_deal == "C":
+                result = database_manager.check_trigger()
                 print(result)
 
             table = input("請輸入操作表格名稱 \n")
@@ -102,13 +125,13 @@ def main():
                 # print(trigger_add_result)
                 trigger_add_result = EmployeeTableCRUD.create_status_trigger()
                 print(trigger_add_result)
-            elif (table == "customers") & (table_deal=="C"):
+            elif (table == "customers") & (table_deal == "C"):
                 trigger_add_result = CustomerTableCRUD.create_customer_trigger()
                 print(trigger_add_result)
                 # trigger_removed_result=database_manager.drop_trigger("trg_customer_id")
                 # print(trigger_removed_result)
-            elif (table =="orders") & (table_deal=="C"):
-                trigger_add_result = OrderTableCRUD.create_order_trigger()
+            elif (table == "orders") & (table_deal == "C"):
+                trigger_add_result = create_order_trigger()
                 print(trigger_add_result)
                 # trigger_removed_result=database_manager.drop_trigger("trg_order_id")
                 # print(trigger_removed_result)
@@ -119,7 +142,7 @@ def main():
             # if table_deal=="B":
 
             break
-#加速尋找: 以上為db manager區；以下是正是操作區----------------
+        # 加速尋找: 以上為db manager區；以下是正是操作區----------------
         table_choice = input(
             "請選擇要操作的資料表：A.使用者資料表 B.工作時間資料表 C.員工資料表 D:產品規格表 E:客戶資料表 F:職位權限表 G:訂單資料表\n"
         )
@@ -132,44 +155,42 @@ def main():
             worker = input("請輸入查詢對象 Enter=明細全查 \n")
             _, employee_data = EmployeeTableCRUD.read_employee_table()
             employee_name_list = (
-                DataTransfer(employee_data)
-                .to_worker_dicts(nick_name=False)
-                .values()
+                DataTransfer(employee_data).to_worker_dicts(nick_name=False).values()
             )
 
             while worker not in employee_name_list:
-                if worker=="":
-                    worker=None
+                if worker == "":
+                    worker = None
                     break
-                worker=input("查無該工作者，請重新輸入查詢對象 Enter=明細全查 \n")
+                worker = input("查無該工作者，請重新輸入查詢對象 Enter=明細全查 \n")
 
             start_date = input("請輸入查詢起始日期 Enter=資料庫起用日 \n")
-            if start_date =="":
-                start_date="2025-10-01"
-            bool_s,start_date=check_datetime_formuler(start_date)
+            if start_date == "":
+                start_date = "2025-10-01"
+            bool_s, start_date = check_datetime_formuler(start_date)
             while not bool_s:
                 start_date = input("起始日期不合法，請重新輸入 \n")
-                bool_s,start_date=check_datetime_formuler(start_date)
+                bool_s, start_date = check_datetime_formuler(start_date)
 
             end_date = input("請輸入查詢結束日期 Enter=今天 \n")
-            if end_date =="":
-                end_date=date.today()
-            bool_e,end_date=check_datetime_formuler(end_date)
+            if end_date == "":
+                end_date = date.today()
+            bool_e, end_date = check_datetime_formuler(end_date)
             while not bool_e:
                 end_date = input("起始日期不合法，請重新輸入 \n")
-                bool_e,end_date=check_datetime_formuler(end_date)
+                bool_e, end_date = check_datetime_formuler(end_date)
             # print(employee_name_list)
             recorder = None
-            assert isinstance(start_date,date)
-            assert isinstance(end_date,date)
-            date_compliance=date_compliarty(start_date,end_date)
+            assert isinstance(start_date, date)
+            assert isinstance(end_date, date)
+            date_compliance = date_compliarty(start_date, end_date)
             if not date_compliance:
                 print("日期前後打錯，請重來")
                 sys.exit()
 
             work_records = WorkingTimeTableCRUD.read_work_time_table(
-                                    worker,recorder,start_date,end_date
-                                )
+                worker, recorder, start_date, end_date
+            )
             for work_record in work_records:
                 print(work_record)
             break
@@ -190,40 +211,53 @@ def main():
             break
         elif function_choice == "1" and table_choice.upper() == "E":
             while True:
-                customer_id=input("請輸入客戶id \n")
-                if customer_id=="":
-                    customer_id=None
+                customer_id = input("請輸入客戶id \n")
+                if customer_id == "":
+                    customer_id = None
                     break
-                check_bool,customer_id,check_result=check_internal_id_format(customer_id)
-                if check_result !="customer_id":
+                check_bool, customer_id, check_result = check_internal_id_format(
+                    customer_id
+                )
+                if check_result != "customer_id":
                     print("客戶id格式不正確!")
                     continue
                 else:
                     break
 
-            customer_name=input("請輸入客戶姓名\n")
-            if customer_name=="":
-                customer_name=None
-            customer_data = CustomerTableCRUD.read_customer_table(customer_id,customer_name)
+            customer_name = input("請輸入客戶姓名\n")
+            if customer_name == "":
+                customer_name = None
+            customer_data = CustomerTableCRUD.read_customer_table(
+                customer_id, customer_name
+            )
             if not customer_data:
-                customer_data=CustomerTableCRUD.customer_fuzzy_search(customer_name)
+                customer_data = CustomerTableCRUD.customer_fuzzy_search(customer_name)
                 print(customer_data)
             else:
                 for customer in customer_data:
                     print(customer)
 
         elif function_choice == "1" and table_choice.upper() == "F":
-            roles=RoleTableCRUD.read_role()
+            roles = RoleTableCRUD.read_role()
             print(roles)
             break
         elif function_choice == "1" and table_choice.upper() == "G":
-            results=OrderTableCRUD.read_order_table()
+            order_id = input(
+                "請輸入查詢訂單號碼 (格式:On年度-四位流水號) Enter=全查 \n"
+            )
+            if order_id == "":
+                order_id = None
+            receiver_name = input("請輸入收件人姓名 Enter=全查 \n")
+            if receiver_name == "":
+                receiver_name = None
+            results = OrderTableCRUD.read_order_table(
+                order_id, receiver_name, status=None
+            )
             for result in results:
                 print(result)
             break
 
-
-#加速尋找: 以上為READ區；以下為INSERT區------------------
+        # 加速尋找: 以上為READ區；以下為INSERT區------------------
 
         elif function_choice == "2" and table_choice.upper() == "A":
             user_name = input("請輸入使用者名稱:\n")
@@ -261,7 +295,7 @@ def main():
             employee_role = input("請輸入員工職位\n")
             department = input("請輸入員工所屬部門\n")
             insert_result, message = EmployeeTableCRUD.insert_employee(
-                employee_no, employee_name,department, employee_role
+                employee_no, employee_name, department, employee_role
             )
             print(insert_result)
             print(message)
@@ -276,92 +310,122 @@ def main():
             print(message)
             break
         elif function_choice == "2" and table_choice.upper() == "E":
-            customer_name=input("請輸入客戶姓名:\n")
+            customer_name = input("請輸入客戶姓名:\n")
             while True:
-                customer_phone=input("請輸入客戶電話號碼: \n")
-                phone_check,_,message =check_phone(customer_phone)
-                if not phone_check :
+                customer_phone = input("請輸入客戶電話號碼: \n")
+                phone_check, _, message = check_phone(customer_phone)
+                if not phone_check:
                     print(message)
                 else:
                     print(f"號碼驗證成功:{message}")
                     break
             customer_address = input("請輸入客戶地址: \n")
-            payment_method = input ("請選擇客戶習慣付款方式 1:Cash 2:Transfer\n")
-            payment_dict={"1":"Cash","2":"Transfer"}
+            payment_method = input("請選擇客戶習慣付款方式 1:Cash 2:Transfer\n")
+            payment_dict = {"1": "Cash", "2": "Transfer"}
 
             if payment_method not in payment_dict.keys():
                 raise KeyError("付款只有現金與匯款方式")
-            transfer_account=None
+            transfer_account = None
             if payment_method == "2":
                 while not transfer_account:
-                    transfer_account=input("轉帳客戶請輸入預計匯款帳戶:")
+                    transfer_account = input("轉帳客戶請輸入預計匯款帳戶:")
 
-            payment_method=payment_dict[payment_method]
+            payment_method = payment_dict[payment_method]
             print(payment_method)
             creator = input("紀錄者\n")
-            _,message=CustomerTableCRUD.insert_customer(customer_name,customer_phone,customer_address,creator,payment_method=payment_method,transfer_account=transfer_account)
+            _, message = CustomerTableCRUD.insert_customer(
+                customer_name,
+                customer_phone,
+                customer_address,
+                creator,
+                payment_method=payment_method,
+                transfer_account=transfer_account,
+            )
             print(message)
             break
         elif function_choice == "2" and table_choice.upper() == "F":
-            role=input("請輸入職位名稱:\n")
-            department=input("請輸入部門名稱:\n")
-            HRsys=input("請選擇此部門職位的人事系統權限等級 (0,1,2,3)\n")
-            financesys=input("請選擇此部門職位的財務系統權限等級 (0,1,2,3)\n")
-            ordersys=input("請選擇此部門職位的訂單系統權限等級 (0,1,2,3)\n")
-            permission_levels=["0","1","2","3"]
-            if any(x not in permission_levels for x in [HRsys,financesys,ordersys] ):
+            role = input("請輸入職位名稱:\n")
+            department = input("請輸入部門名稱:\n")
+            HRsys = input("請選擇此部門職位的人事系統權限等級 (0,1,2,3)\n")
+            financesys = input("請選擇此部門職位的財務系統權限等級 (0,1,2,3)\n")
+            ordersys = input("請選擇此部門職位的訂單系統權限等級 (0,1,2,3)\n")
+            permission_levels = ["0", "1", "2", "3"]
+            if any(x not in permission_levels for x in [HRsys, financesys, ordersys]):
                 print(f"請輸入許可的權限代號，{permission_levels}")
                 break
             else:
-                RoleTableCRUD.insert_role(role,department,int(HRsys),int(financesys),int(ordersys))
+                RoleTableCRUD.insert_role(
+                    role, department, int(HRsys), int(financesys), int(ordersys)
+                )
                 print("資料存入成功")
 
             break
         elif function_choice == "2" and table_choice.upper() == "G":
             while True:
-                product_code=input("請輸入產品編號: \n")
+                product_code = input("請輸入產品編號: \n")
                 # print(repr(product_code))
-                result=ProductsTableCRUD.read_product_info(product_code)
+                result = ProductsTableCRUD.read_product_info(product_code)
                 if result is None:
                     print("沒有此產品編號，請重新輸入")
                 else:
-                    confirm=input(f"請確認產品資訊:{result} 正確(Y) /錯誤(N) \n").upper()
-                    if confirm =="Y":
+                    confirm = input(
+                        f"請確認產品資訊:{result} 正確(Y) /錯誤(N) \n"
+                    ).upper()
+                    if confirm == "Y":
                         break
-            product_name=result["product_name"]
+            product_name = result["product_name"]
             print(product_name)
-            product_spec=result["spec"]
+            product_spec = result["spec"]
             print(product_spec)
-            qty=int(input("請輸入訂單數量\n"))
+            qty = int(input("請輸入訂單數量\n"))
             while True:
-                customer_id=input("請輸入客戶編號或客戶姓名\n")
-                if customer_id[0]== "C" and customer_id[1]=="n":
-                    result=CustomerTableCRUD.read_customer_table(customer_id)
+                customer_id = input("請輸入客戶編號或客戶姓名\n")
+                if customer_id[0] == "C" and customer_id[1] == "n":
+                    result = CustomerTableCRUD.read_customer_table(customer_id)
                 else:
-                    result=CustomerTableCRUD.read_customer_table(customer_name=customer_id)
-                if result is None:
+                    result = CustomerTableCRUD.read_customer_table(
+                        customer_name=customer_id
+                    )
+                if result is None or result == []:
                     print("沒有此客戶編號/姓名，請重新輸入")
                 else:
-                    confirm=input(f"請確認客戶資訊:{result} \n 正確(Y) /錯誤(N) \n").upper()
-                    if confirm =="Y":
+                    confirm = input(
+                        f"請確認客戶資訊:{result} \n 正確(Y) /錯誤(N) \n"
+                    ).upper()
+                    if confirm == "Y":
+                        customer_id = result[0]["customer_id"]
                         break
 
-            subtotal=int(input("請輸入總計貨款(不含運費)\n"))
-            shipment_fee=int(input("請輸入運費\n"))
-            receiver_name=input("請輸入收件人姓名:\n")
-            receiver_phone=input("請輸入收件人電話:\n")
-            boolean,phone,phonetype=check_phone(receiver_phone)
+            subtotal = int(input("請輸入總計貨款(不含運費)\n"))
+            shipment_fee = int(input("請輸入運費\n"))
+            receiver_name = input("請輸入收件人姓名:\n")
+            receiver_phone = input("請輸入收件人電話:\n")
+            boolean, phone, phonetype = check_phone(receiver_phone)
             if boolean:
-                print(phone,phonetype)
-            receiver_address=input("請輸入收件人地址:\n")
-            create_by=input("請輸入員工編號:\n")
+                print(phone, phonetype)
+            receiver_address = input("請輸入收件人地址:\n")
+            create_by = input("請輸入員工編號:\n")
             # payment_method=input("請選擇付款方式 1:Cash 2:Transfer \n")
-            result=OrderTableCRUD.insert_order_table(product_code,product_name,product_spec,qty,customer_id,subtotal,shipment_fee,receiver_name,receiver_phone,receiver_address,create_by)
+            reserved = input("請輸入保留/排單\n")
+            result = OrderTableCRUD.insert_order_table(
+                reserved,
+                product_code,
+                product_name,
+                product_spec,
+                qty,
+                customer_id,
+                subtotal,
+                shipment_fee,
+                receiver_name,
+                phone,
+                receiver_address,
+                create_by,
+            )
             print(result)
 
             break
 
-#加速尋找: 以上為INSERT區；以下為UPDATE區
+        # 加速尋找: 以上為INSERT區；以下為UPDATE區
 
         elif function_choice == "3" and table_choice.upper() == "C":
             employee_no = input("請輸入員工編號\n")
@@ -380,17 +444,20 @@ def main():
             column = input("請輸入修改欄位\n")
             new_data = input("請輸入更新數值\n")
             if customer_id != "" and column != "" and new_data != "":
-                if column =="payment_method" and new_data == "Transfer":
-                    transfer_account=input("請輸入轉帳帳戶\n")
+                if column == "payment_method" and new_data == "Transfer":
+                    transfer_account = input("請輸入轉帳帳戶\n")
                     _, updated_message = CustomerTableCRUD.update_customer(
                         customer_id, column, new_data
                     )
                     print(updated_message)
                     _, updated_message = CustomerTableCRUD.update_customer(
-                        customer_id,'transfer_account', transfer_account
+                        customer_id, "transfer_account", transfer_account
                     )
                     print(updated_message)
-                elif column =="payment_method" and new_data not in ["Cash","Transfer"]:
+                elif column == "payment_method" and new_data not in [
+                    "Cash",
+                    "Transfer",
+                ]:
                     print("修改付款方式的話不能只改付款方式欄位")
 
                 else:
@@ -403,57 +470,66 @@ def main():
                 sys.exit(0)
         elif function_choice == "3" and table_choice.upper() == "G":
             while True:
-                order_id=input("請輸入欲更新的訂單編號: \n")
-                order_info=OrderTableCRUD.read_order_table(order_id)
-                if len(order_info) ==1:
+                order_id = input("請輸入欲更新的訂單編號: \n")
+                order_info = OrderTableCRUD.read_order_table(order_id)
+                if len(order_info) == 1:
                     print(order_info)
-                    confirm=input("確認是否要修改這筆 Y/N \n")
-                    if confirm.upper()=="Y":
+                    confirm = input("確認是否要修改這筆 Y/N \n")
+                    if confirm.upper() == "Y":
                         break
                 else:
-                    choose=input(f"資料庫查無{order_id}的資料，繼續查詢? Y/N\n").upper()
-                    if choose !="Y":
+                    choose = input(
+                        f"資料庫查無{order_id}的資料，繼續查詢? Y/N\n"
+                    ).upper()
+                    if choose != "Y":
                         break
-            while len(order_info)==1:
-                update_choice=input("請選擇更新類別 1:訂單狀態更新(已出貨) 2:訂單狀態更新(已收款) 3.訂單狀態更新(訂單取消) U.訂單資料更新  0:放棄\n")
-                if update_choice=="0":
+            while len(order_info) == 1:
+                update_choice = input(
+                    "請選擇更新類別 1:訂單狀態更新(已出貨) 2:訂單狀態更新(已收款) 3.訂單狀態更新(訂單取消) U.訂單資料更新  0:放棄\n"
+                )
+                if update_choice == "0":
                     break
-                elif update_choice.upper() =="U":
+                elif update_choice.upper() == "U":
                     continue
-                elif update_choice =="1":
-                    shipment_date=input("請輸入出貨日期\n")
-                    update_result=OrderTableCRUD.order_shipping(order_id,shipment_date)
+                elif update_choice == "1":
+                    shipment_date = input("請輸入出貨日期\n")
+                    update_result = OrderTableCRUD.order_shipping(
+                        order_id, shipment_date
+                    )
                     print(update_result)
                     break
-                elif update_choice =="2":
-                    payment_method=input("請輸入收款方式: 1:Cash  2: Transfer\n")
-                    if payment_method=="1":
-                        payment_method="Cash"
-                        transfer_account=None
-                    elif payment_method=="2":
-                        payment_method="Transfer"
-                        transfer_account=input("請輸入匯出帳戶\n")
+                elif update_choice == "2":
+                    payment_method = input("請輸入收款方式: 1:Cash  2: Transfer\n")
+                    if payment_method == "1":
+                        payment_method = "Cash"
+                        transfer_account = None
+                    elif payment_method == "2":
+                        payment_method = "Transfer"
+                        transfer_account = input("請輸入匯出帳戶\n")
                     else:
                         print("無該收款方式，取消輸入")
                         break
-                    payment_reciving_date=input("請輸入收款日期:\n")
-                    update_result=OrderTableCRUD.order_complete(order_id,payment_reciving_date,payment_method,transfer_account)
+                    payment_reciving_date = input("請輸入收款日期:\n")
+                    update_result = OrderTableCRUD.order_complete(
+                        order_id,
+                        payment_reciving_date,
+                        payment_method,
+                        transfer_account,
+                    )
                     print(update_result)
                     break
-                elif update_choice =="3":
+                elif update_choice == "3":
                     break
                 else:
                     print("訂單資料更新無此選項")
                     break
-#加速尋找: 以上為UPDATE區；以下為DELETE區
+        # 加速尋找: 以上為UPDATE區；以下為DELETE區
 
         elif function_choice == "D" and table_choice.upper() == "B":
             rows = WorkingTimeTableCRUD.read_work_time_table()
             while len(rows) > 0:
                 delect_row_id = int(input("刪除哪一筆id\n"))
-                delete_result = WorkingTimeTableCRUD.delete_work_time(
-                    delect_row_id
-                )
+                delete_result = WorkingTimeTableCRUD.delete_work_time(delect_row_id)
                 print(delete_result)
                 continue_delete = input("繼續刪除? Y/N \n").upper()
                 if continue_delete == "Y":
@@ -498,9 +574,7 @@ def main():
                 print(row)
             while len(rows) > 0:
                 delect_row_id = int(input("刪除哪一筆id\n"))
-                delete_result = EmployeeTableCRUD.delete_employee(
-                    delect_row_id
-                )
+                delete_result = EmployeeTableCRUD.delete_employee(delect_row_id)
                 print(delete_result)
                 continue_delete = input("繼續刪除? Y/N \n").upper()
                 if continue_delete == "Y":
@@ -515,12 +589,10 @@ def main():
                 break
             for row in rows:
                 print(row)
-            data_len=len(rows)
+            data_len = len(rows)
             while data_len > 0:
                 delect_row_id = int(input("刪除哪一筆id\n"))
-                delete_result = CustomerTableCRUD.delete_customer(
-                    delect_row_id
-                )
+                delete_result = CustomerTableCRUD.delete_customer(delect_row_id)
                 print(delete_result)
                 data_len -= 1
                 continue_delete = input("繼續刪除? Y/N \n").upper()
@@ -551,9 +623,9 @@ def main():
             rows = OrderTableCRUD.read_order_table()
             while len(rows) > 0:
                 order_id = input("刪除哪一筆的訂單編號\n")
-                bool,internal_id,id_type=check_internal_id_format(id)
+                bool, internal_id, id_type = check_internal_id_format(order_id)
                 print(id_type)
-                if id_type =="order_id":
+                if id_type == "order_id":
                     delete_result = OrderTableCRUD.delete_order(order_id)
                     print(delete_result)
                     continue_delete = input("繼續刪除? Y/N \n").upper()
@@ -565,30 +637,134 @@ def main():
                     print("輸入格式非訂單編號，請重新輸入 \n")
             else:
                 print("訂單表格已無紀錄")
+        elif function_choice == "XLSX" and table_choice.upper == "G":
 
+            pass
 
-#加速尋找: 以上為DELETE區；以下為測試區
+        # 加速尋找: 以上為DELETE區；以下為測試區
 
         elif function_choice == "T" and table_choice.upper() == "F":
-            employee_no="SHR07"
-            tester=RoleTableCRUD.read_personal_permission(employee_no)
+            employee_no = "SHR07"
+            tester = RoleTableCRUD.read_personal_permission(employee_no)
             print(tester)
             break
 
         elif function_choice == "T" and table_choice.upper() == "P":
+            # today = datetime.now(ZoneInfo("Asia/Taipei")).date()
+            today = date(2027, 8, 22)
+            print(today)
+            result = order_taking_date_check(today)
+            print(f"可以key單嗎?:{result}")
+            check2 = order_reserving_date_check(today)
+            print(f"還可以保留訂單嗎?:{check2}")
 
+            # employee_no=["SHR01","SHR03","SHR05","SHR06","SHR07","SHR08"]
+            # for employee in employee_no:
+            #     reserved_amont=calculate_reserved_amount(employee)
+            #     print(reserved_amont)
             break
 
-        elif function_choice =="T" and table_choice.upper()=="G":
-            # delete_result=database_manager.delete_table("orders")
-            delete_result="預防誤選，仙註解掉"
-            print(delete_result)
-        elif function_choice=="T" and table_choice.upper()=="E":
-            result=OrderTableCRUD.order_fuzzy_search("林智")
+        elif function_choice == "T" and table_choice.upper() == "G":
+            employee_no = input("請輸入查詢的員工編號SHR \n")
+            test_result = OrderTableCRUD.get_sales_df(employee_no)
+            print(test_result)
+            test_status1 = OrderTableCRUD.get_sales_reservation(test_result)
+            print(test_status1)
+            test_status2 = calculate_reserved_amount(employee_no)
+            print(test_status2 - test_status1)
+
+        elif function_choice == "T" and table_choice.upper() == "E":
+            recorder = "SHR08"
+            order_data = {
+                "receiver_name": "陳明德3",
+                "receiver_phone": "0987654321",
+                "receiver_address": "嘉義縣東石鄉3",
+                "customer_name": "黃政奎",
+                "customer_phone": "08-0644949",
+                "customer_address": "嘉義縣太保市",
+                "product_code": "pomelo-G-10",
+                "qty": 1,
+                "subtotal": 568,
+                "shipment_fee": 47,
+                "predict_payment_method": "Cash",
+                "ship_date_requested": "",
+                "order_notes": "",
+            }
+            # 測試資料如上
+            result = check_oder_data(order_data)
             print(result)
-        elif function_choice=="T" and table_choice.upper()=="B":
-            worker="林智群"
-            result=WorkingTimeTableCRUD.read_personal_duration_list(worker)
+            product_code = order_data["product_code"]
+            product_info = ProductsTableCRUD.read_product_info(product_code)
+            if product_info is None:
+                raise KeyError("product code is not in product table")
+            else:
+                product_name = product_info["product_name"]
+                spec = product_info["spec"]
+            new_qty = order_data["qty"]
+
+            customer_name = order_data["customer_name"]
+            customer_info = CustomerTableCRUD.read_customer_table(
+                customer_name=customer_name
+            )
+            if customer_info == []:
+                customer_phone = order_data["customer_phone"]
+                customer_address = order_data["customer_address"]
+                new_customer = CustomerTableCRUD.insert_customer(
+                    customer_name,
+                    customer_phone,
+                    customer_address,
+                    recorder,
+                    payment_method=order_data["pridict_payment_method"],
+                )
+                print(new_customer)
+                customer_info = CustomerTableCRUD.read_customer_table(
+                    customer_name=customer_name
+                )
+                customer_id = customer_info[0]["customer_id"]
+            else:
+                customer_id = customer_info[0]["customer_id"]
+
+            salse_record = OrderTableCRUD.get_sales_df(recorder)
+            print(salse_record)
+            reservation_weight = OrderTableCRUD.get_sales_reservation(salse_record)
+            print(f"{recorder}已用保留額:{reservation_weight}")
+            reservation = calculate_reserved_amount(recorder)
+            # reservation = 150
+            print(f"{recorder}的保留額度{reservation}")
+            reservation_result = OrderTableCRUD.check_new_order_status(
+                product_code, reservation_weight, order_data["qty"], reservation
+            )
+
+            if reservation_result != "退回":
+                # print(reservation_result,product_code,product_name,spec,new_qty,customer_id,order_data["subtotal"],order_data["shipment_fee"],order_data["receiver_name"],order_data["receiver_phone"],order_data["receiver_address"],recorder)
+                insert_bool, new_order_id = OrderTableCRUD.insert_order_table(
+                    reservation_result,
+                    product_code,
+                    product_name,
+                    spec,
+                    new_qty,
+                    customer_id,
+                    order_data["subtotal"],
+                    order_data["shipment_fee"],
+                    order_data["receiver_name"],
+                    order_data["receiver_phone"],
+                    order_data["receiver_address"],
+                    recorder,
+                    payment_method=order_data["predict_payment_method"],
+                    order_notes=order_data["order_notes"],
+                )
+                # resu="非保留項目已測試成功、保留項目但O+N>R & O>R 測試成功、保留項目但O+N<R 測試成功"
+                print(insert_bool, new_order_id)
+            else:
+                print("O+N>R 且O+N<R 請詢問使用者要如何處理")
+                insert_bool = False
+                new_order_id = "沒新增成功"
+            if insert_bool:
+                print(new_order_id, customer_info)
+
+        elif function_choice == "T" and table_choice.upper() == "B":
+            year = 2026
+            result = OrderTableCRUD.read_order_for_xlsx(year)
             print(result)
         else:
             print("無效的選擇，請重新輸入。")
