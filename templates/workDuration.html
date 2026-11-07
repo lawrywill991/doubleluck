@@ -75,6 +75,12 @@
             background-color: #0056b3;
         }
 
+        button:disabled,
+        button:disabled:hover {
+            background-color: #9bbbe0;
+            cursor: not-allowed;
+        }
+
         .btn-link {
             /* 💡 關鍵：讓 <a> 標籤可以像按鈕一樣設定寬度和內距 */
             display: inline-block;
@@ -305,8 +311,35 @@
         const modalTitle = document.getElementById('modalTitle')
         const modalDisplay = document.getElementById('modalDisplay');
 
+        // 人員、日期、開始時間、結束時間都填好，才能按「存入」
+        function isFormReady() {
+            return document.querySelectorAll('input[name="item"]:checked').length > 0
+                && Boolean(document.getElementById('work-date').value)
+                && Boolean(startTimeInput.value)
+                && Boolean(endTimeInput.value);
+        }
+
+        function updateSubmitState() {
+            submitButton.disabled = !isFormReady();
+        }
+
+        document.querySelectorAll('input[name="item"]').forEach(el => {
+            el.addEventListener('change', updateSubmitState);
+        });
+        ['work-date', 'startTimeInput', 'endTimeInput'].forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', updateSubmitState);
+            el.addEventListener('change', updateSubmitState);
+        });
+        // 預設日期是在 DOMContentLoaded 裡用程式填的，不會觸發 input 事件，所以載入完要再檢查一次
+        document.addEventListener('DOMContentLoaded', updateSubmitState);
+
         submitButton.addEventListener('click', async (event) => {
             event.preventDefault(); //小括號加event，並寫上這行的話代表阻止表單點擊後自動重新整理網頁！
+            if (!isFormReady()) {   // 防呆：理論上按鈕已 disabled，不會走到這裡
+                updateSubmitState();
+                return;
+            }
             submitButton.disabled = true
             submitButton.textContent = '請稍候...';
             //前端資料打包段
@@ -377,7 +410,7 @@
                     modal.classList.add('show');
                 })
                 .catch((error) => { console.error("輸入工時時發生錯誤", error) })
-                .finally(() => { submitButton.disabled = false; submitButton.textContent = '存入' })
+                .finally(() => { submitButton.textContent = '存入'; updateSubmitState(); })
         });
 
 
