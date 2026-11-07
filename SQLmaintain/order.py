@@ -372,8 +372,9 @@ class OrderTableCRUD:
                 df["spec"] == "10斤裝",
                 df["spec"] == "15斤裝",
                 df["spec"] == "20斤裝",
+                df["spec"] == "粒計",
             ]
-            choice_list = [10, 15, 20]
+            choice_list = [10, 15, 20, 0.7813]
             weight = np.select(condition, choice_list, default=0)
             df["weight"] = weight
 
@@ -488,7 +489,9 @@ class OrderTableCRUD:
                 # print(sql)
                 # print(tuple(data_dict.values()))
                 cursor.execute(sql, tuple(data_dict.values()))
-                new_id = cursor.lastrowid  # 用剛寫入那筆的id查，避免同收件人多張單時抓到舊單
+                new_id = (
+                    cursor.lastrowid
+                )  # 用剛寫入那筆的id查，避免同收件人多張單時抓到舊單
                 query = "SELECT order_id FROM orders WHERE id=?"
                 cursor.execute(query, (new_id,))
                 order_id = cursor.fetchone()[0]
