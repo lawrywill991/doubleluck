@@ -21,11 +21,31 @@ RESERVE_RATIO = {
 }
 # 2027正式採收日(2027,8,21)
 # 2027開始接單日(2027,8,15)
-HARVEST_DAY = date(2027, 8, 21)
-START_ORDER_TAKING = date(2026, 8, 15)
-END_ORDER_TAKING = date(2027, 12, 31)
-HARVEST_DAY_PD = pd.Timestamp(2027, 8, 21)
-START_ORDER_TAKING_PD = pd.Timestamp(2026, 8, 15)
+HARVEST_DAY = datetime(2026, 8, 21, tzinfo=ZoneInfo("Asia/Taipei"))
+START_ORDER_TAKING = datetime(2026, 8, 15, tzinfo=ZoneInfo("Asia/Taipei"))
+END_ORDER_TAKING = datetime(2026, 12, 31, tzinfo=ZoneInfo("Asia/Taipei"))
+HARVEST_DAY_PD = pd.Timestamp(2026, 11, 30)
+START_ORDER_TAKING_PD = pd.Timestamp(2026, 11, 1)
+
+
+MAPPING_WEIGHT = {
+    "pomelo-G-10": 10,
+    "pomelo-G-15": 15,
+    "pomelo-G-20": 20,
+    "pomelo-G-1": 0.7813,
+    "pomelo-U-10": 10,
+    "pomelo-U-15": 15,
+    "pomelo-U-20": 20,
+    "pomelo-U-1": 1,
+    "pomelo-B-10": 10,
+    "pomelo-B-15": 15,
+    "pomelo-B-20": 20,
+    "pomelo-B-1": 1,
+    "pomelo-S-10": 10,
+    "pomelo-S-15": 15,
+    "pomelo-S-20": 20,
+    "pomelo-S-1": 0.5,
+}  # 這個太麻煩，之後要乾脆寫進去products table來調用比較乾脆
 
 
 class CustomerTableCRUD:
@@ -341,6 +361,8 @@ class OrderTableCRUD:
             sql = "SELECT * FROM orders WHERE created_at BETWEEN ? AND ?"
             sql_condition = (f"{year}-01-01", f"{year}-12-31")
             df = pd.read_sql_query(con=con, sql=sql, params=sql_condition)
+            df["created_at"] = pd.to_datetime(df["created_at"])
+            df["weight"] = df["product_code"].map(MAPPING_WEIGHT)
             return df
 
     @staticmethod
@@ -374,6 +396,7 @@ class OrderTableCRUD:
         )
         condition2 = df["reserved"] == "保留"
         df = df.loc[condition2 & condition]
+        # print(df)
         reservation_weight = round((df["weight"] * df["qty"]).sum(), 2)
         # print(f"保留值={reservation_weight}")
         return reservation_weight
@@ -625,6 +648,42 @@ class OrderTableCRUD:
             reservation_result = "排單"
         return reservation_result
 
+    @staticmethod
+    def get_order_sequesnce(df: pd.DataFrame, order_id: str) -> tuple[str, int, float]:
+        if len(df) == 0:
+            return "空資料表", 1, 0
+        if order_id not in df["order_id"].tolist():
+            raise ValueError("訂單資料表無此訂單")
+        product_name = df.loc[df["order_id"] == order_id, "product_name"].iloc[0]
+        df["created_at"] = pd.to_datetime(df["created_at"])
+        create_time = df.loc[df["order_id"] == order_id, "created_at"].iloc[0]
+        reservation = df.loc[df["order_id"] == order_id, "reserved"].iloc[0]
+        create_by = df.loc[df["order_id"] == order_id, "create_by"].iloc[0]
+        # print(f"訂單建立者{create_by}，訂單建立時間{create_time}，訂單品項:{product_name}，訂單保留or排單:{reservation}")
+
+        if reservation == "保留":
+            df = df.loc[
+                (df["reserved"] == "保留")
+                & (df["create_by"] == create_by)
+                & (df["product_name"] == product_name)
+                & (df["created_at"] <= create_time)
+            ]
+        else:
+            df = df.loc[
+                (df["reserved"] == "排單")
+                & (df["product_name"] == product_name)
+                & (df["created_at"] <= create_time)
+            ]
+
+        df = df.sort_values(["created_at"], ascending=True).reset_index(drop=True)
+        sequence_of_order = df.index[df["order_id"] == order_id][0] + 1
+        if len(df) <= 1:
+            reservated_weight = 0
+        else:
+            df = df.loc[df["created_at"] < create_time]
+            reservated_weight = round((df["weight"] * df["qty"]).sum(), 2)
+        return reservation, sequence_of_order, reservated_weight
+
 
 def calculate_reserved_amount(employee_no: str) -> int:
     total_reserved_production = math.ceil(LAST_PRODUCTION * 0.75 / 10) * 10
@@ -636,7 +695,7 @@ def calculate_reserved_amount(employee_no: str) -> int:
     return personal_reversed_production
 
 
-def order_taking_date_check(today: date) -> bool:
+def order_taking_date_check(today: datetime) -> bool:
     # today=datetime.date.today()
     if today < START_ORDER_TAKING:
         return False
