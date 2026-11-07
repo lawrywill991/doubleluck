@@ -431,7 +431,7 @@ class OrderTableCRUD:
         order_notes=None,
     ) -> tuple[bool, str]:
         try:
-            check_result, reciver_phone, _ = check_phone(receiver_phone)
+            check_result, receiver_phone, _ = check_phone(receiver_phone)
             if not check_result:
                 return False, "輸入電話號碼格式不正確"
             if payment_method not in ["Cash", "Transfer"]:
