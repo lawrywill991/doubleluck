@@ -206,15 +206,12 @@ def get_personal_duration():
             user, None, start_date, end_date
         )
         # print(worker_record)
-        if worker_record is not None:
+        if worker_record:
             worker_duration = DataTransfer(worker_record).get_duration_sum()
-            worker_data = {user: worker_duration}
-            data.append(worker_data)
-            return flask.jsonify({"status": True, "data": data})
         else:
-            worker_data = {user: 0}
-            data.append(worker_data)
-            return flask.jsonify({"status": True, "data": data})
+            worker_duration = 0
+        data.append({user: worker_duration})
+        return flask.jsonify({"status": True, "data": data})
 
 
 @doubleluck.route("/duration/recentRecords", methods=["GET"])
