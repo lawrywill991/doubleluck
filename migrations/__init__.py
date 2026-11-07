@@ -1,1 +1,2 @@
-from .add_ordertable import create_order_table, create_order_trigger
+from .add_ordertable import create_order_table,create_order_trigger
+from .add_weight_column import alter_weight_column
