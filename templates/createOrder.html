@@ -192,17 +192,42 @@
             margin-bottom: 0;
         }
 
-        .receiver-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
+        .suggest-wrapper {
+            position: relative;
         }
 
-        .receiver-info button {
-            width: auto;
-            margin-bottom: 0;
-            padding: 4px 10px;
+        .suggest-list {
+            display: none;
+            position: absolute;
+            top: calc(100% - 10px);
+            left: 0;
+            right: 0;
+            z-index: 10;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .suggest-list li {
+            padding: 10px;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggest-list li:last-child {
+            border-bottom: none;
+        }
+
+        .suggest-list li:hover {
+            background-color: #f0f6ff;
         }
 
         .action-row {
@@ -314,6 +339,39 @@
         .modal-actions .cancel-btn:hover {
             background-color: #5a6268;
         }
+
+        button:disabled,
+        button:disabled:hover {
+            background-color: #9bbbe0;
+            cursor: not-allowed;
+        }
+
+        .order-summary {
+            text-align: left;
+            margin: 12px 0;
+            padding: 10px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            background-color: #fafafa;
+            font-size: 14px;
+        }
+
+        .order-summary .summary-line {
+            display: flex;
+            gap: 8px;
+            padding: 3px 0;
+        }
+
+        .order-summary .summary-label {
+            flex: 0 0 72px;
+            color: #777;
+        }
+
+        .order-summary .summary-text {
+            flex: 1;
+            color: #333;
+            word-break: break-all;
+        }
     </style>
 </head>
 
@@ -323,11 +381,12 @@
 
         <div class="form-section">
             <h2>收件人資訊</h2>
-            <div class="receiver-info">
-                <label for="receiverName">收件人</label>
-                <button type="button" id="serchReciverBtn">搜尋歷史收件人</button>
+            <label for="receiverName">收件人</label>
+            <div class="suggest-wrapper">
+                <input type="text" id="receiverName" name="receiverName" placeholder="請輸入收件人姓名"
+                    autocomplete="off">
+                <ul id="receiverSuggest" class="suggest-list"></ul>
             </div>
-            <input type="text" id="receiverName" name="receiverName" placeholder="請輸入收件人姓名">
             <div>
                 <label for="receiverPhone">電話</label>
                 <input type="tel" id="receiverPhone" name="receiverPhone" placeholder="請輸入電話">
@@ -344,7 +403,11 @@
                 <h2>訂購人資訊</h2>
                 <div>
                     <label for="buyerName">訂購人</label>
-                    <input type="text" id="buyerName" name="buyerName" placeholder="請輸入訂購人姓名">
+                    <div class="suggest-wrapper">
+                        <input type="text" id="buyerName" name="buyerName" placeholder="請輸入訂購人姓名"
+                            autocomplete="off">
+                        <ul id="buyerSuggest" class="suggest-list"></ul>
+                    </div>
                 </div>
                 <div>
                     <label for="buyerPhone">電話</label>
@@ -397,8 +460,8 @@
                 <div class="payment-method">
                     <label for="paymentMethod">預計付款方式</label>
                     <select id="paymentMethod" name="paymentMethod">
-                        <option value="現金">現金</option>
-                        <option value="匯款">匯款</option>
+                        <option value="Cash">現金</option>
+                        <option value="Transfer">匯款</option>
                     </select>
                 </div>
             </div>
@@ -422,6 +485,7 @@
         <div class="modal-content">
             <span class="close-button" data-close-modal>&times;</span>
             <h2>確認送出</h2>
+            <div id="orderSummary" class="order-summary"></div>
             <p>確認要送出這筆訂單嗎？</p>
             <div class="modal-actions">
                 <button type="button" id="confirmSubmitBtn">確認送出</button>
@@ -430,22 +494,10 @@
         </div>
     </div>
 
-    <div id="modalCustomerCheck" class="modal">
-        <div class="modal-content">
-            <span class="close-button" data-close-modal>&times;</span>
-            <h2>客戶確認</h2>
-            <p id="customerModalMessage">是否已有客戶？</p>
-            <div class="modal-actions">
-                <button type="button" id="confirmCustomerBtn">確認</button>
-                <button type="button" class="cancel-btn" data-close-modal>取消</button>
-            </div>
-        </div>
-    </div>
-
     <div id="modalResult" class="modal">
         <div class="modal-content">
             <span class="close-button" data-close-modal>&times;</span>
-            <h2>建立完成</h2>
+            <h2 id="resultModalTitle">建立完成</h2>
             <p id="resultModalMessage">訂單建立完成。</p>
             <div class="modal-actions">
                 <button type="button" id="confirmResultBtn">確認</button>
@@ -467,7 +519,6 @@
         const itemSelect = document.getElementById("itemSelect");
         const specSelect = document.getElementById("specSelect");
         const names = [...new Set(products.map(p => p.product_name))];
-        const receiverSearchbtn = document.getElementById('serchReciverBtn')
         //以下是copilot寫的
         document.addEventListener('DOMContentLoaded', function () {
             const sameAsRecipientCheckbox = document.getElementById('sameAsRecipient');
@@ -480,7 +531,6 @@
             const expectedTotalAmountDisplay = document.getElementById('expectedTotalAmountDisplay');
             const submitOrderBtn = document.getElementById('submitOrderBtn');
             const modalSubmitConfirm = document.getElementById('modalSubmitConfirm');
-            const modalCustomerCheck = document.getElementById('modalCustomerCheck');
             const modalResult = document.getElementById('modalResult');
             const specificateShipDate = document.getElementById('specificateShipDate')
             const shipDate = document.getElementById('shipDate')
@@ -547,22 +597,149 @@
             toggleShippingDate();
             calculateExpectedValues();
 
+            const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
+            const orderSummary = document.getElementById('orderSummary');
+            const paymentMethodSelect = document.getElementById('paymentMethod');
+            let pendingOrder = null;
+
+            // 收集表單資料，key 名稱對應後端 /order/create 的 orderData
+            function collectOrderData() {
+                const val = id => document.getElementById(id).value.trim();
+                const receiver = {
+                    name: val('receiverName'),
+                    phone: val('receiverPhone'),
+                    address: val('receiverAddress'),
+                };
+                const buyer = sameAsRecipientCheckbox.checked ? receiver : {
+                    name: val('buyerName'),
+                    phone: val('buyerPhone'),
+                    address: val('buyerAddress'),
+                };
+                return {
+                    receiver_name: receiver.name,
+                    receiver_phone: receiver.phone,
+                    receiver_address: receiver.address,
+                    customer_name: buyer.name,
+                    customer_phone: buyer.phone,
+                    customer_address: buyer.address,
+                    product_code: specSelect.value,
+                    qty: parseInt(quantityInput.value, 10),
+                    subtotal: parseInt(document.getElementById('actualPayment').value, 10),
+                    shipment_fee: parseInt(document.getElementById('actualShipping').value, 10),
+                    predict_payment_method: paymentMethodSelect.value,
+                    order_notes: val('orderNote'),
+                    ship_date: specificateShipDate.checked && shipDate.value ? shipDate.value : null,
+                };
+            }
+
+            // 送出前的基本檢查，詳細檢查（電話格式等）仍由後端負責
+            function findMissingFields(order) {
+                const labels = {
+                    receiver_name: '收件人',
+                    receiver_phone: '收件人電話',
+                    receiver_address: '收件人地址',
+                    customer_name: '訂購人',
+                    customer_phone: '訂購人電話',
+                    customer_address: '訂購人地址',
+                    product_code: '品項規格',
+                };
+                const missing = Object.keys(labels).filter(key => !order[key]).map(key => labels[key]);
+                if (!Number.isInteger(order.qty) || order.qty < 1) missing.push('數量');
+                if (!Number.isInteger(order.subtotal) || order.subtotal < 0) missing.push('實際貨款');
+                if (!Number.isInteger(order.shipment_fee) || order.shipment_fee < 0) missing.push('實際運費');
+                if (specificateShipDate.checked && !order.ship_date) missing.push('指定出貨日');
+                return missing;
+            }
+
+            function renderOrderSummary(order) {
+                const specText = specSelect.options[specSelect.selectedIndex]?.text ?? '';
+                const paymentText = paymentMethodSelect.options[paymentMethodSelect.selectedIndex]?.text ?? '';
+                const rows = [
+                    ['收件人', `${order.receiver_name} / ${order.receiver_phone}`],
+                    ['收件地址', order.receiver_address],
+                ];
+                if (sameAsRecipientCheckbox.checked) {
+                    rows.push(['訂購人', '同收件人']);
+                } else {
+                    rows.push(['訂購人', `${order.customer_name} / ${order.customer_phone}`]);
+                    rows.push(['訂購地址', order.customer_address]);
+                }
+                rows.push(
+                    ['品項', `${itemSelect.value} ${specText} × ${order.qty}`],
+                    ['貨款', order.subtotal],
+                    ['運費', order.shipment_fee],
+                    ['總額', order.subtotal + order.shipment_fee],
+                    ['付款方式', paymentText],
+                );
+                if (order.ship_date) rows.push(['出貨日', order.ship_date]);
+                if (order.order_notes) rows.push(['備註', order.order_notes]);
+
+                // 用 textContent 組畫面，避免使用者輸入的內容被當成 HTML
+                orderSummary.replaceChildren(...rows.map(([label, value]) => {
+                    const line = document.createElement('div');
+                    line.className = 'summary-line';
+                    const labelEl = document.createElement('span');
+                    labelEl.className = 'summary-label';
+                    labelEl.textContent = label;
+                    const textEl = document.createElement('span');
+                    textEl.className = 'summary-text';
+                    textEl.textContent = String(value);
+                    line.append(labelEl, textEl);
+                    return line;
+                }));
+            }
+
             submitOrderBtn.addEventListener('click', function () {
+                const order = collectOrderData();
+                const missing = findMissingFields(order);
+                if (missing.length > 0) {
+                    showResultModal({ title: '資料不完整', message: '請確認以下欄位：' + missing.join('、') });
+                    return;
+                }
+                pendingOrder = order;
+                renderOrderSummary(order);
                 openModal(modalSubmitConfirm);
             });
 
-            document.getElementById('confirmSubmitBtn').addEventListener('click', function () {
-                closeModal(modalSubmitConfirm);
-                // fetch placeholder，後續由你自行補上
-                console.log('submit fetch placeholder');
-                showCustomerModal({ hasCustomer: true });
-            });
-
-            document.getElementById('confirmCustomerBtn').addEventListener('click', function () {
-                closeModal(modalCustomerCheck);
-                // fetch placeholder，後續由你自行補上
-                console.log('customer check fetch placeholder');
-                showResultModal({ message: '訂單建立完成。' });
+            confirmSubmitBtn.addEventListener('click', function () {
+                if (!pendingOrder) return;
+                confirmSubmitBtn.disabled = true;
+                confirmSubmitBtn.textContent = '送出中...';
+                fetch('/order/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderData: pendingOrder }),
+                })
+                    .then(res => {
+                        // 登入逾時會被導向登入頁
+                        if (res.redirected) {
+                            window.location.href = res.url;
+                            return null;
+                        }
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        return res.json();
+                    })
+                    .then(result => {
+                        if (!result) return;
+                        // 後端回傳格式：[true/false, 訊息]
+                        const [success, message] = result;
+                        closeModal(modalSubmitConfirm);
+                        showResultModal({
+                            success: success === true,
+                            title: success === true ? '建立完成' : '建立失敗',
+                            message,
+                        });
+                    })
+                    .catch(err => {
+                        console.error('建立訂單失敗', err);
+                        closeModal(modalSubmitConfirm);
+                        showResultModal({ title: '建立失敗', message: '系統發生錯誤，請稍後再試或聯繫程式開發者。' });
+                    })
+                    .finally(() => {
+                        pendingOrder = null;
+                        confirmSubmitBtn.disabled = false;
+                        confirmSubmitBtn.textContent = '確認送出';
+                    });
             });
 
             document.getElementById('confirmResultBtn').addEventListener('click', function () {
@@ -591,25 +768,22 @@
             document.body.style.overflow = 'hidden';
         }
 
+        // 訂單建立成功後，關閉結果 modal 時重新載入頁面，清空表單繼續 key 單
+        let orderCreated = false;
+
         function closeModal(modal) {
             if (!modal) return;
             modal.classList.remove('show');
             document.body.style.overflow = '';
-        }
-
-        function showCustomerModal(data) {
-            const message = document.getElementById('customerModalMessage');
-            if (data && data.hasCustomer) {
-                message.textContent = '已有客戶，是否直接帶入資料？';
-            } else {
-                message.textContent = '目前沒有相同客戶，請繼續建立。';
+            if (modal.id === 'modalResult' && orderCreated) {
+                window.location.reload();
             }
-            openModal(document.getElementById('modalCustomerCheck'));
         }
 
         function showResultModal(data) {
-            const message = document.getElementById('resultModalMessage');
-            message.textContent = data && data.message ? data.message : '建立完成';
+            orderCreated = Boolean(data && data.success);
+            document.getElementById('resultModalTitle').textContent = data && data.title ? data.title : '建立完成';
+            document.getElementById('resultModalMessage').textContent = data && data.message ? data.message : '';
             openModal(document.getElementById('modalResult'));
         }
         //以上是copiolot寫的
@@ -629,39 +803,119 @@
             });
         };
 
-        receiverSearchbtn.addEventListener('click', () => {
-            const modalCustomerCheck = document.getElementById('modalCustomerCheck');
-            const sameAsRecipientCheckbox = document.getElementById('sameAsRecipient');
-            const receiverName = document.getElementById('sameAsRecipient');
-            const buyerName = document.getElementById('buyerName')
-            const customerModalMessage = document.getElementById('customerModalMessage')
-            if (sameAsRecipientCheckbox.checked) { buyerName.value = receiverName.value }
-            if (!receiverName.value && !buyerName.value) {
-                customerModalMessage.innerText = '請輸入收件人/訂購人姓名以供查詢';
-                openModal(modalCustomerCheck)
+        // 姓名輸入達 3 個字後自動查詢客戶，結果以下拉清單顯示，點選後帶入電話與地址
+        const CUSTOMER_SEARCH_MIN_LENGTH = 3;
+        const CUSTOMER_SEARCH_DELAY = 300; // ms
+
+        function setupCustomerSuggest({ nameInput, phoneInput, addressInput, listEl, isActive }) {
+            let timer = null;
+            let latestRequestId = 0;
+
+            function hide() {
+                listEl.replaceChildren();
+                listEl.style.display = 'none';
             }
-            else {
-                let postData = { 'receivername': receiverName.value, 'buyername': buyerName.value }
+
+            function render(customers) {
+                listEl.replaceChildren();
+                if (!Array.isArray(customers) || customers.length === 0) {
+                    hide();
+                    return;
+                }
+                customers.forEach(customer => {
+                    const li = document.createElement('li');
+                    li.textContent = [
+                        customer.customer_name,
+                        customer.customer_phone,
+                        customer.customer_address,
+                    ].map(v => v ?? '').join(' / ');
+                    li.addEventListener('click', () => {
+                        nameInput.value = customer.customer_name ?? nameInput.value;
+                        phoneInput.value = customer.customer_phone ?? '';
+                        addressInput.value = customer.customer_address ?? '';
+                        hide();
+                    });
+                    listEl.appendChild(li);
+                });
+                listEl.style.display = 'block';
+            }
+
+            function search() {
+                const keyword = nameInput.value.trim();
+                if (!isActive() || keyword.length < CUSTOMER_SEARCH_MIN_LENGTH) {
+                    latestRequestId++; // 讓還在路上的舊請求失效
+                    hide();
+                    return;
+                }
+                const requestId = ++latestRequestId;
                 fetch('/orders/search-customer', {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(postData),
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ buyerName: keyword }),
                 })
-                    .then(res => res.json())
-                    .then(data => {
-                        console.log(data.data)
-                        if (customerModalMessage) {
-                            customerModalMessage.innerText = "";
-                            customerModalMessage.innerText = data
-                        }
-                        openModal(modalCustomerCheck)
-                    }).catch(err => {
-                        console.error(err);
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        return res.json();
                     })
+                    .then(data => {
+                        if (requestId !== latestRequestId) return;
+                        render(data && data.data);
+                    })
+                    .catch(err => {
+                        if (requestId !== latestRequestId) return;
+                        console.error('查詢客戶失敗', err);
+                        hide();
+                    });
             }
-        })
+
+            function scheduleSearch() {
+                clearTimeout(timer);
+                timer = setTimeout(search, CUSTOMER_SEARCH_DELAY);
+            }
+
+            // 注音等輸入法組字中不查詢，組字完成再查
+            nameInput.addEventListener('input', e => {
+                if (e.isComposing) return;
+                scheduleSearch();
+            });
+            nameInput.addEventListener('compositionend', scheduleSearch);
+            nameInput.addEventListener('keydown', e => {
+                if (e.key === 'Escape') hide();
+            });
+            document.addEventListener('click', e => {
+                if (e.target !== nameInput && !listEl.contains(e.target)) hide();
+            });
+
+            return { render, hide };
+        }
+
+        const sameAsRecipientInput = document.getElementById('sameAsRecipient');
+
+        // 掛在 window 上方便在 Console 用假資料測試，例如：
+        // customerSuggest.receiver.render([{customer_name:'王小明', customer_phone:'0912345678', customer_address:'台北市'}])
+        window.customerSuggest = {
+            // 勾選「訂購人同收件人」時查收件人姓名，帶入收件人欄位
+            receiver: setupCustomerSuggest({
+                nameInput: document.getElementById('receiverName'),
+                phoneInput: document.getElementById('receiverPhone'),
+                addressInput: document.getElementById('receiverAddress'),
+                listEl: document.getElementById('receiverSuggest'),
+                isActive: () => sameAsRecipientInput.checked,
+            }),
+            // 沒勾選時查訂購人姓名，帶入訂購人欄位
+            buyer: setupCustomerSuggest({
+                nameInput: document.getElementById('buyerName'),
+                phoneInput: document.getElementById('buyerPhone'),
+                addressInput: document.getElementById('buyerAddress'),
+                listEl: document.getElementById('buyerSuggest'),
+                isActive: () => !sameAsRecipientInput.checked,
+            }),
+        };
+
+        sameAsRecipientInput.addEventListener('change', () => {
+            window.customerSuggest.receiver.hide();
+            window.customerSuggest.buyer.hide();
+        });
 
 
     </script>
