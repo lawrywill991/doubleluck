@@ -361,7 +361,7 @@ class OrderTableCRUD:
         database = get_db_path()
         with sqlite3.connect(database) as con:
             # cursor=con.cursor()
-            sql = f"SELECT order_id,reserved,product_name,spec,qty,created_at FROM orders WHERE create_by=? AND created_at BETWEEN ? AND ?"
+            sql = f"SELECT order_id,reserved,product_name,spec,qty,status,created_at FROM orders WHERE create_by=? AND created_at BETWEEN ? AND ?"
             sql_condition = (
                 employee_no,
                 str(START_ORDER_TAKING),
