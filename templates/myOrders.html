@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查詢我的訂單</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 12px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 420px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 22px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 17px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        select,
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 15px;
+        }
+
+        .filter-section {
+            margin-bottom: 16px;
+            padding: 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled,
+        button:disabled:hover {
+            background-color: #9bbbe0;
+            cursor: not-allowed;
+        }
+
+        .btn-link {
+            display: block;
+            box-sizing: border-box;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+            text-decoration: none;
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .btn-link:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+
+        .result-info {
+            color: #777;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .order-card {
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        .order-card.is-inactive {
+            background-color: #f7f7f7;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .order-id {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .order-date {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .status-not_shipped {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-not_paid {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-order_canceled {
+            background-color: #e2e3e5;
+            color: #41464b;
+        }
+
+        .status-complete {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-bad_debt {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .order-line {
+            display: flex;
+            gap: 8px;
+            padding: 3px 0;
+            font-size: 14px;
+        }
+
+        .order-label {
+            flex: 0 0 64px;
+            color: #777;
+        }
+
+        .order-text {
+            flex: 1;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .cancel-order-btn {
+            margin-top: 10px;
+            background-color: #dc3545;
+            font-size: 15px;
+            padding: 10px 12px;
+        }
+
+        .cancel-order-btn:hover {
+            background-color: #b02a37;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 86%;
+            max-width: 360px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+        }
+
+        .close-button {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+        }
+
+        .close-button:hover {
+            color: black;
+        }
+
+        .modal-summary {
+            text-align: left;
+            margin: 12px 0;
+            padding: 10px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            background-color: #fafafa;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .modal-actions button {
+            font-size: 15px;
+            padding: 10px 12px;
+        }
+
+        .modal-actions .danger-btn {
+            background-color: #dc3545;
+        }
+
+        .modal-actions .danger-btn:hover {
+            background-color: #b02a37;
+        }
+
+        .modal-actions .cancel-btn {
+            background-color: #6c757d;
+        }
+
+        .modal-actions .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>查詢我的訂單</h1>
+
+        <div class="filter-section">
+            <label for="keywordInput">收件人或訂購人姓名</label>
+            <input type="text" id="keywordInput" placeholder="不填則顯示全部" autocomplete="off">
+
+            <label for="statusSelect">訂單狀態</label>
+            <select id="statusSelect">
+                <option value="">全部</option>
+                <option value="not_shipped">未出貨</option>
+                <option value="not_paid">已出貨未收款</option>
+                <option value="order_canceled">已取消</option>
+                <option value="complete">完成</option>
+                <option value="bad debt">呆帳</option>
+            </select>
+
+            <button type="button" id="searchBtn">查詢</button>
+        </div>
+
+        <div id="resultInfo" class="result-info">請設定條件後按「查詢」</div>
+        <div id="orderList"></div>
+
+        <a href="/" class="btn-link">返回首頁</a>
+    </div>
+
+    <div id="modalCancelConfirm" class="modal">
+        <div class="modal-content">
+            <span class="close-button" data-close-modal>&times;</span>
+            <h2>確認取消訂單</h2>
+            <div id="cancelSummary" class="modal-summary"></div>
+            <p>取消後無法復原，確定要取消這筆訂單嗎？</p>
+            <div class="modal-actions">
+                <button type="button" id="confirmCancelBtn" class="danger-btn">確認取消</button>
+                <button type="button" class="cancel-btn" data-close-modal>返回</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalResult" class="modal">
+        <div class="modal-content">
+            <span class="close-button" data-close-modal>&times;</span>
+            <h2 id="resultModalTitle">結果</h2>
+            <p id="resultModalMessage"></p>
+            <div class="modal-actions">
+                <button type="button" data-close-modal>確認</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STATUS_LABELS = {
+            not_shipped: '未出貨',
+            not_paid: '已出貨未收款',
+            order_canceled: '已取消',
+            complete: '完成',
+            'bad debt': '呆帳',
+        };
+        // 只有未出貨、已出貨未收款可以取消；完成、呆帳、已取消都不行（後端也會再檢查）
+        const CANCELABLE_STATUS = ['not_shipped', 'not_paid'];
+        const PAYMENT_LABELS = { Cash: '現金', Transfer: '匯款' };
+
+        const keywordInput = document.getElementById('keywordInput');
+        const statusSelect = document.getElementById('statusSelect');
+        const searchBtn = document.getElementById('searchBtn');
+        const resultInfo = document.getElementById('resultInfo');
+        const orderList = document.getElementById('orderList');
+        const modalCancelConfirm = document.getElementById('modalCancelConfirm');
+        const modalResult = document.getElementById('modalResult');
+        const cancelSummary = document.getElementById('cancelSummary');
+        const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+
+        let pendingCancelOrder = null;
+
+        // ---- modal ----
+        function openModal(modal) {
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modal) {
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function showResultModal(title, message) {
+            document.getElementById('resultModalTitle').textContent = title;
+            document.getElementById('resultModalMessage').textContent = message;
+            openModal(modalResult);
+        }
+
+        document.querySelectorAll('[data-close-modal]').forEach(btn => {
+            btn.addEventListener('click', () => closeModal(btn.closest('.modal')));
+        });
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target === modal) closeModal(modal);
+            });
+        });
+
+        // ---- fetch 共用：登入逾時導回登入頁，HTTP 錯誤丟出例外 ----
+        function postJson(url, body) {
+            return fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            }).then(res => {
+                if (res.redirected) {
+                    window.location.href = res.url;
+                    return null;
+                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            });
+        }
+
+        // ---- 畫面 ----
+        function createLine(label, value) {
+            const line = document.createElement('div');
+            line.className = 'order-line';
+            const labelEl = document.createElement('span');
+            labelEl.className = 'order-label';
+            labelEl.textContent = label;
+            const textEl = document.createElement('span');
+            textEl.className = 'order-text';
+            textEl.textContent = value;
+            line.append(labelEl, textEl);
+            return line;
+        }
+
+        function orderTotal(order) {
+            return Number(order.subtotal || 0) + Number(order.shipment_fee || 0);
+        }
+
+        function createOrderCard(order) {
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            if (!CANCELABLE_STATUS.includes(order.status)) card.classList.add('is-inactive');
+
+            const header = document.createElement('div');
+            header.className = 'order-header';
+            const idEl = document.createElement('span');
+            idEl.className = 'order-id';
+            idEl.textContent = order.order_id;
+            const badge = document.createElement('span');
+            badge.className = 'status-badge status-' + String(order.status).replace(' ', '_');
+            badge.textContent = STATUS_LABELS[order.status] ?? order.status;
+            header.append(idEl, badge);
+
+            const dateEl = document.createElement('div');
+            dateEl.className = 'order-date';
+            dateEl.textContent = `建立時間：${order.created_at ?? ''}`;
+
+            card.append(
+                header,
+                dateEl,
+                createLine('品項', `${order.product_name} ${order.spec} × ${order.qty}`),
+                createLine('收件人', `${order.receiver_name} / ${order.receiver_phone}`),
+                createLine('地址', order.receiver_address),
+                createLine('訂購人', order.customer_name),
+                createLine('金額', `貨款 ${order.subtotal} + 運費 ${order.shipment_fee} = ${orderTotal(order)}`),
+                createLine('付款方式', PAYMENT_LABELS[order.payment_method] ?? order.payment_method ?? ''),
+            );
+            if (order.ship_date_requested) card.append(createLine('指定出貨', order.ship_date_requested));
+            if (order.order_notes) card.append(createLine('備註', order.order_notes));
+
+            if (CANCELABLE_STATUS.includes(order.status)) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'cancel-order-btn';
+                cancelBtn.textContent = '取消訂單';
+                cancelBtn.addEventListener('click', () => openCancelConfirm(order));
+                card.append(cancelBtn);
+            }
+            return card;
+        }
+
+        function renderOrders(orders) {
+            orderList.replaceChildren();
+            if (!Array.isArray(orders) || orders.length === 0) {
+                resultInfo.textContent = '查無訂單';
+                return;
+            }
+            resultInfo.textContent = `共 ${orders.length} 筆訂單`;
+            orders.forEach(order => orderList.append(createOrderCard(order)));
+        }
+
+        // ---- 查詢 ----
+        function searchOrders() {
+            searchBtn.disabled = true;
+            searchBtn.textContent = '查詢中...';
+            resultInfo.textContent = '';
+            postJson('/order/my-orders/search', {
+                keyword: keywordInput.value.trim(),
+                status: statusSelect.value,
+            })
+                .then(data => {
+                    if (!data) return;
+                    renderOrders(data.data);
+                })
+                .catch(err => {
+                    console.error('查詢訂單失敗', err);
+                    orderList.replaceChildren();
+                    resultInfo.textContent = '查詢失敗，請稍後再試';
+                })
+                .finally(() => {
+                    searchBtn.disabled = false;
+                    searchBtn.textContent = '查詢';
+                });
+        }
+
+        searchBtn.addEventListener('click', searchOrders);
+        keywordInput.addEventListener('keydown', e => {
+            // 注音選字時按 Enter 不查詢
+            if (e.key === 'Enter' && !e.isComposing) searchOrders();
+        });
+
+        // ---- 取消訂單 ----
+        function openCancelConfirm(order) {
+            pendingCancelOrder = order;
+            cancelSummary.replaceChildren(
+                createLine('訂單編號', order.order_id),
+                createLine('品項', `${order.product_name} ${order.spec} × ${order.qty}`),
+                createLine('收件人', order.receiver_name),
+                createLine('總額', orderTotal(order)),
+            );
+            openModal(modalCancelConfirm);
+        }
+
+        confirmCancelBtn.addEventListener('click', () => {
+            if (!pendingCancelOrder) return;
+            confirmCancelBtn.disabled = true;
+            confirmCancelBtn.textContent = '處理中...';
+            postJson('/order/my-orders/cancel', { order_id: pendingCancelOrder.order_id })
+                .then(data => {
+                    if (!data) return;
+                    closeModal(modalCancelConfirm);
+                    showResultModal(data.status === true ? '取消完成' : '取消失敗', data.message ?? '');
+                    if (data.status === true) searchOrders();
+                })
+                .catch(err => {
+                    console.error('取消訂單失敗', err);
+                    closeModal(modalCancelConfirm);
+                    showResultModal('取消失敗', '系統發生錯誤，請稍後再試或聯繫程式開發者。');
+                })
+                .finally(() => {
+                    pendingCancelOrder = null;
+                    confirmCancelBtn.disabled = false;
+                    confirmCancelBtn.textContent = '確認取消';
+                });
+        });
+
+        // 頁面打開時不載入訂單，按下「查詢」才顯示
+    </script>
+</body>
+
+</html>
