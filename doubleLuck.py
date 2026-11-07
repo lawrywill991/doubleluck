@@ -245,22 +245,12 @@ def search_customer():
     if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
     else:
-        recorder = flask.session["employee_id"]
-        customer_data = flask.request.get_json()
-        customer_name = customer_data["buyerName"]
-        # customer_phone= customer_data['buyerPhone']
-        # customer_adress = customer_data['byerAdress']
-        receiver_name = customer_data["receivername"]
-        checkresult, SQL_data = CustomerTableCRUD.read_customer_for_flask(customer_name)
-
-        print(checkresult)
-        print(SQL_data)
-        if not checkresult and not isinstance(SQL_data, list):
-            return flask.jsonify({"status": False, "data": None})
-        elif not checkresult and isinstance(SQL_data, list):
-            return flask.jsonify({"status": False, "data": SQL_data})
-        else:
-            return flask.jsonify({"status": True, "data": SQL_data})
+        request_data = flask.request.get_json(silent=True) or {}
+        customer_name = str(request_data.get("buyerName", "")).strip()
+        if not customer_name:
+            return flask.jsonify({"status": False, "data": []})
+        found, customers = CustomerTableCRUD.read_customer_for_flask(customer_name)
+        return flask.jsonify({"status": found, "data": customers})
 
 
 @doubleluck.route("/order/create", methods=["POST"])
