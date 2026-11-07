@@ -222,3 +222,4 @@ __marimo__/
 *.db
 schedules/
 DB雲端備份日期.txt
+.claude/
