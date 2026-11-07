@@ -32,7 +32,7 @@ MAPPING_WEIGHT = {
     "pomelo-G-10": 10,
     "pomelo-G-15": 15,
     "pomelo-G-20": 20,
-    "pomelo-G-1": 0.7813,
+    "pomelo-G-1": 1,
     "pomelo-U-10": 10,
     "pomelo-U-15": 15,
     "pomelo-U-20": 20,
@@ -44,7 +44,7 @@ MAPPING_WEIGHT = {
     "pomelo-S-10": 10,
     "pomelo-S-15": 15,
     "pomelo-S-20": 20,
-    "pomelo-S-1": 0.5,
+    "pomelo-S-1": 1,
 }  # 這個太麻煩，之後要乾脆寫進去products table來調用比較乾脆
 
 
@@ -372,9 +372,9 @@ class OrderTableCRUD:
                 df["spec"] == "10斤裝",
                 df["spec"] == "15斤裝",
                 df["spec"] == "20斤裝",
-                df["spec"] == "粒計",
+                df["spec"] == "袋裝(斤)",
             ]
-            choice_list = [10, 15, 20, 0.7813]
+            choice_list = [10, 15, 20, 1]
             weight = np.select(condition, choice_list, default=0)
             df["weight"] = weight
 
