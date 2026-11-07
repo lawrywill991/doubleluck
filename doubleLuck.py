@@ -1,6 +1,6 @@
 import flask
 from flask import render_template
-from datetime import datetime
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
 
 from SQLmaintain import (
@@ -180,7 +180,7 @@ def add_Duration():
         if not success:
             worker_duration = None
         else:
-            start_date, end_date = default_date_range()
+            start_date, end_date, _ = default_date_range(usage_sys="workduration")
             worker_record = WorkingTimeTableCRUD.read_work_time_table(
                 worker, None, start_date, end_date
             )
@@ -201,7 +201,7 @@ def get_personal_duration():
     else:
         user = flask.session["username"]
         data = []
-        start_date, end_date = default_date_range()
+        start_date, _, end_date = default_date_range(usage_sys="workduration")
         worker_record = WorkingTimeTableCRUD.read_work_time_table(
             user, None, start_date, end_date
         )
@@ -268,23 +268,35 @@ def search_customer():
 
 @doubleluck.route("/order/create", methods=["POST"])
 def create_order():
-    today = datetime.now(ZoneInfo("Asia/Taipei")).date()
+    # today = datetime.now(ZoneInfo("Asia/Taipei")).date()
+    today = datetime(2026, 8, 16, tzinfo=ZoneInfo("Asia/Taipei"))
     date_after_start = order_taking_date_check(today)
     if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
-    elif date_after_start:
+    elif not date_after_start:
         return flask.jsonify(False, "尚未開放key單")
     else:
         order_data = flask.request.get_json()
+        order_data = order_data["orderData"]
+        order_data.update({"qty": int(order_data["qty"])})
+        order_data.update({"subtotal": int(order_data["subtotal"])})
+        order_data.update({"shipment_fee": int(order_data["shipment_fee"])})
+        # print(order_data)
         recorder = flask.session["employee_id"]
-        salse_record = OrderTableCRUD.get_sales_df(recorder)
-        reservation_weight = OrderTableCRUD.get_sales_reservation(salse_record)
-        reservation = calculate_reserved_amount(recorder)
+        # 先檢查傳來後端的資料有無缺少，電話格式是否正確
         data_check_bool, data_missing = check_oder_data(order_data)
-
+        if data_check_bool == False:
+            return flask.jsonify(False, f"資料有缺少{data_missing}")
+        # 先用產品代號取得產品資料
         product_code = order_data["product_code"]
+        product_info = ProductsTableCRUD.read_product_info(product_code)
+        if product_info is None:
+            raise KeyError("product code is not in product table")
+        else:
+            product_name = product_info["product_name"]
+            spec = product_info["spec"]
         new_qty = order_data["qty"]
-
+        # 用客戶名稱查詢客戶編號，沒有則新增
         customer_name = order_data["customer_name"]
         customer_info = CustomerTableCRUD.read_customer_table(
             customer_name=customer_name
@@ -295,33 +307,56 @@ def create_order():
             new_customer = CustomerTableCRUD.insert_customer(
                 customer_name, customer_phone, customer_address, recorder
             )
-            print(new_customer)
+            # print(new_customer)
             customer_info = CustomerTableCRUD.read_customer_table(
                 customer_name=customer_name
             )
             customer_id = customer_info[0]["customer_id"]
         else:
             customer_id = customer_info[0]["customer_id"]
-
-        # 先寫非排單的部分
-        need_reserve_product = {
-            "pomelo-G-10": 10,
-            "pomelo-G-15": 15,
-            "pomelo-G-20": 20,
-            "pomelo-G-1": 1,
-        }
-        if order_data["product_code"] in need_reserve_product.keys():
-            new_weight = new_qty * need_reserve_product[order_data["product_code"]]
-            if reservation_weight + new_weight <= reservation:
-                pass
-            else:
-                pass
+        # 計算並取得業務員的保留額與使用狀況
+        salse_record = OrderTableCRUD.get_sales_df(recorder)
+        reservation_weight = OrderTableCRUD.get_sales_reservation(salse_record)
+        reservation = calculate_reserved_amount(recorder)
+        reservation_result = OrderTableCRUD.check_new_order_status(
+            product_code, reservation_weight, order_data["qty"], reservation
+        )
+        # print(reservation_result)
+        # 先寫正常接單的部分，保留或排序
+        if reservation_result != "退回":
+            insert_bool, new_order_id = OrderTableCRUD.insert_order_table(
+                reservation_result,
+                product_code,
+                product_name,
+                spec,
+                new_qty,
+                customer_id,
+                order_data["subtotal"],
+                order_data["shipment_fee"],
+                order_data["receiver_name"],
+                order_data["receiver_phone"],
+                order_data["receiver_address"],
+                recorder,
+                payment_method=order_data["predict_payment_method"],
+                order_notes=order_data["order_notes"],
+            )
         else:
-
-            pass
-
-        data = "testing"
-        return flask.jsonify({"status": True, "data": data})
+            return flask.jsonify(
+                False, f"本次新增重量會超過您的保留額，請決定降低數量key單或整單取消"
+            )
+        # 利用訂單編號查詢回傳本單排序號是幾號&前面有多少單
+        if insert_bool:
+            year = today.year
+            df = OrderTableCRUD.read_order_for_xlsx(year)
+            reservation, sequence, reservated_weight = (
+                OrderTableCRUD.get_order_sequesnce(df, new_order_id)
+            )
+            return flask.jsonify(
+                True,
+                f"訂單輸入成功，訂單號碼{new_order_id}，本單為{reservation}訂單,第{sequence}順位,前面有{reservated_weight}台斤待出貨",
+            )
+        else:
+            return flask.jsonify(False, f"發生未預期錯誤，請聯繫程式開發者確認")
 
 
 if __name__ == "__main__":
