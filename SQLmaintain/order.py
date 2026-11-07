@@ -386,7 +386,9 @@ class OrderTableCRUD:
         condition = (df["created_at"] < HARVEST_DAY_PD) & (
             df["created_at"] > START_ORDER_TAKING_PD
         )
-        condition2 = df["reserved"] == "保留"
+        condition2 = (df["reserved"] == "保留") & (
+            (df["status"] == "not_shipped") | (df["status"] == "not_paid")
+        )
         df = df.loc[condition2 & condition]
         # print(df)
         reservation_weight = round((df["weight"] * df["qty"]).sum(), 2)
