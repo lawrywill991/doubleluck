@@ -69,6 +69,7 @@ class DataTransfer:  # 要回傳資料給前端時把read結果解析的方法�
             dict.pop("id")
             dict.pop("create_by")
             dict.pop("created_at")
+            dict.pop("unit_weight")
         return self.data
 
     def remove_information(self, information_keys=("id", "crate_by", "created_at")):
@@ -222,11 +223,21 @@ def date_compliarty(start_date, end_date) -> bool:
         return True
 
 
-def default_date_range():
+def default_date_range(usage_sys) -> tuple[date, date, date]:
     today = date.today()
     year = today.year
-    if today.month <= 9:
-        start_date = date(year - 1, 9, 30)
-    else:
-        start_date = date(year, 10, 1)
-    return start_date, today
+    if usage_sys == "orders":
+        if today.month <= 9:
+            start_date = date(year - 1, 10, 1)
+            end_date = date(year, 9, 30)
+        else:
+            start_date = date(year, 10, 1)
+            end_date = date(year + 1, 9, 30)
+    else:  # 我先把工時的區間與訂單的區間都先寫一樣都是去年10月到今年9月，以後好調整。
+        if today.month <= 9:
+            start_date = date(year - 1, 10, 1)
+            end_date = date(year, 9, 30)
+        else:
+            start_date = date(year, 10, 1)
+        end_date = date(year + 1, 9, 30)
+    return start_date, today, end_date
