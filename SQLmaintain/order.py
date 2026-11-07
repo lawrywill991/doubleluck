@@ -194,13 +194,11 @@ class CustomerTableCRUD:
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 cursor.execute(sql, tuple(data_dict.values()))
+                new_id = cursor.lastrowid  # 用剛寫入那筆的id查，避免同名客戶抓錯
+                query = "SELECT customer_id FROM customers WHERE id=?"
+                cursor.execute(query, (new_id,))
+                customer_id = cursor.fetchone()[0]
                 con.commit()
-            with sqlite3.connect(database) as con:
-                cursor = con.cursor()
-                query = f"SELECT customer_id FROM customers WHERE customer_name=?"
-                data = (customer_name,)
-                cursor.execute(query, data)
-                customer_id = cursor.fetchone()
             # customer_id = "測試ID"
             return (
                 True,
@@ -497,13 +495,11 @@ class OrderTableCRUD:
                 # print(sql)
                 # print(tuple(data_dict.values()))
                 cursor.execute(sql, tuple(data_dict.values()))
-                con.commit()
-            with sqlite3.connect(database) as con:
-                cursor = con.cursor()
-                query = f"SELECT order_id FROM orders WHERE receiver_name=? AND customer_id=?"
-                data = (receiver_name, customer_id)
-                cursor.execute(query, data)
+                new_id = cursor.lastrowid  # 用剛寫入那筆的id查，避免同收件人多張單時抓到舊單
+                query = "SELECT order_id FROM orders WHERE id=?"
+                cursor.execute(query, (new_id,))
                 order_id = cursor.fetchone()[0]
+                con.commit()
             return (
                 True,
                 f"{order_id}",
