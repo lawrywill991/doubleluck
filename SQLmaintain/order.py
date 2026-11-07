@@ -230,25 +230,18 @@ class CustomerTableCRUD:
         database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
-            query = "SELECT * FROM customers WHRER custmoer_name=?"
-            data = (customer_name,)
-            cursor.execute(query, data)
+            # 只回傳前端需要的欄位，避免匯款帳號等資料送到前端
+            query = (
+                "SELECT customer_name, customer_phone, customer_address "
+                "FROM customers WHERE customer_name=?"
+            )
+            cursor.execute(query, (customer_name,))
             customer_info = cursor.fetchall()
-        if customer_info is None:
-            return False, f"資料庫中查無客戶名稱{customer_name}"
-        elif len(customer_info) > 1:
             columns = [col[0] for col in cursor.description]
-            customer_data = [dict(zip(columns, row)) for row in customer_info]
-            customer_data[0].pop("id")
-            customer_data[0].pop("create_by")
-            return False, customer_info
-        else:
-            columns = [col[0] for col in cursor.description]
-            customer_data = [dict(zip(columns, row)) for row in customer_info]
-            customer_data[0].pop("id")
-            customer_data[0].pop("create_by")
-            # customer_data[0].pop('created_at')
-            return True, customer_info
+        if not customer_info:
+            return False, []
+        customer_data = [dict(zip(columns, row)) for row in customer_info]
+        return True, customer_data
 
     @staticmethod
     def update_customer(customer_id, column, new_data):
