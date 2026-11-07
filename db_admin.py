@@ -24,13 +24,12 @@ from SQLmaintain import (
     order_reserving_date_check,
     check_oder_data,
 )
-from migrations import create_order_table, create_order_trigger
+from migrations import create_order_table, create_order_trigger, alter_weight_column
 
 
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
-
-# import pandas as pd
+import pandas as pd
 
 
 def main():
@@ -42,7 +41,9 @@ def main():
         if function_choice == "0":
             print("退出程式。")
             sys.exit()
-        if function_choice == "ZZ":  # 查詢db檔內容或創建、刪除表格(都只能單次操作)
+        if (
+            function_choice == "ZZ"
+        ):  # 查詢db檔內容或創建、刪除表格(都只能單次操作)、新增欄位
             tables = database_manager.check_tables()
             print(tables)
             necessary_tables = [
@@ -50,7 +51,6 @@ def main():
                 "work_time",
                 "employee",
                 "products",
-                # "role",
                 "customers",
                 "validation",
                 "orders",
@@ -78,8 +78,8 @@ def main():
                     print("產品規格售價表已創建成功!")
                     break
                 elif table_choice == "D":
-                    RoleTableCRUD.create_role_table()
-                    print("職位表已創建成功!")
+                    # RoleTableCRUD.create_role_table()
+                    print("職位表暫時不設計")
                     break
                 elif table_choice == "V":
                     relation = input("請輸入關係: \n")
@@ -97,7 +97,7 @@ def main():
                     print("暫無預設表格可輸入，請聯繫程式作者")
                     break
             table_deal = input(
-                "請輸入表格操作A.查表格欄位與設定 B.刪除整個表格 C.加入Trigger 0.退出\n"
+                "請輸入表格操作A.查表格欄位與設定 B.刪除整個表格 C.加入Trigger D:Alter欄位 0.退出\n"
             ).upper()
             if table_deal == "0":
                 print("退出db_manager")
@@ -135,6 +135,9 @@ def main():
                 print(trigger_add_result)
                 # trigger_removed_result=database_manager.drop_trigger("trg_order_id")
                 # print(trigger_removed_result)
+            elif (table == "products") & (table_deal == "D"):
+                alter_result = alter_weight_column()
+                print(alter_result)
             else:
                 print("查無表格名稱或，請重新操作")
                 break
@@ -624,7 +627,7 @@ def main():
             while len(rows) > 0:
                 order_id = input("刪除哪一筆的訂單編號\n")
                 bool, internal_id, id_type = check_internal_id_format(order_id)
-                print(id_type)
+                # print(id_type)
                 if id_type == "order_id":
                     delete_result = OrderTableCRUD.delete_order(order_id)
                     print(delete_result)
@@ -651,7 +654,7 @@ def main():
 
         elif function_choice == "T" and table_choice.upper() == "P":
             # today = datetime.now(ZoneInfo("Asia/Taipei")).date()
-            today = date(2027, 8, 22)
+            today = datetime(2027, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
             print(today)
             result = order_taking_date_check(today)
             print(f"可以key單嗎?:{result}")
@@ -665,27 +668,28 @@ def main():
             break
 
         elif function_choice == "T" and table_choice.upper() == "G":
-            employee_no = input("請輸入查詢的員工編號SHR \n")
-            test_result = OrderTableCRUD.get_sales_df(employee_no)
-            print(test_result)
-            test_status1 = OrderTableCRUD.get_sales_reservation(test_result)
-            print(test_status1)
-            test_status2 = calculate_reserved_amount(employee_no)
-            print(test_status2 - test_status1)
+            pass
+            # employee_no = input("請輸入查詢的員工編號SHR \n")
+            # test_result = OrderTableCRUD.get_sales_df(employee_no)
+            # print(test_result)
+            # test_status1 = OrderTableCRUD.get_sales_reservation(test_result)
+            # print(test_status1)
+            # test_status2 = calculate_reserved_amount(employee_no)
+            # print(test_status2 - test_status1)
 
         elif function_choice == "T" and table_choice.upper() == "E":
-            recorder = "SHR08"
+            recorder = "SHR03"
             order_data = {
-                "receiver_name": "陳明德3",
-                "receiver_phone": "0987654321",
-                "receiver_address": "嘉義縣東石鄉3",
-                "customer_name": "黃政奎",
-                "customer_phone": "08-0644949",
-                "customer_address": "嘉義縣太保市",
+                "receiver_name": "北七驗",
+                "receiver_phone": "0987887883",
+                "receiver_address": "斤呈現縣斤城鎮",
+                "customer_name": "北七驗",
+                "customer_phone": "08-0644985",
+                "customer_address": "北妻室市待麻里",
                 "product_code": "pomelo-G-10",
                 "qty": 1,
-                "subtotal": 568,
-                "shipment_fee": 47,
+                "subtotal": 871,
+                "shipment_fee": 87,
                 "predict_payment_method": "Cash",
                 "ship_date_requested": "",
                 "order_notes": "",
@@ -761,11 +765,29 @@ def main():
                 new_order_id = "沒新增成功"
             if insert_bool:
                 print(new_order_id, customer_info)
+                ##開始對排單序計算並回傳給前端
+                year = 2026
+                df = OrderTableCRUD.read_order_for_xlsx(year)
+                df["created_at"] = pd.to_datetime(df["created_at"])
+                reservation, sequence, reservated_weight = (
+                    OrderTableCRUD.get_order_sequesnce(df, new_order_id)
+                )
+                print(
+                    f"訂單狀態:{reservation},訂單序:{sequence},前面已接重量:{reservated_weight}"
+                )
 
         elif function_choice == "T" and table_choice.upper() == "B":
-            year = 2026
-            result = OrderTableCRUD.read_order_for_xlsx(year)
-            print(result)
+            pass
+            # year = 2026
+            # df = OrderTableCRUD.read_order_for_xlsx(year)
+            # df["created_at"] = pd.to_datetime(df["created_at"])
+            # order_id = "On26-0009"
+            # reservation, sequence, reservated_weight = (
+            #     OrderTableCRUD.get_order_sequesnce(df, order_id)
+            # )
+            # print(
+            #     f"訂單狀態:{reservation},訂單序:{sequence},前面已接重量:{reservated_weight}"
+            # )
         else:
             print("無效的選擇，請重新輸入。")
             break
