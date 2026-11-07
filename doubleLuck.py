@@ -265,7 +265,7 @@ def search_customer():
 
 @doubleluck.route("/order/create", methods=["POST"])
 def create_order():
-    # today = datetime.now(ZoneInfo("Asia/Taipei")).date()
+    # today = datetime.now(ZoneInfo("Asia/Taipei"))
     today = datetime(2026, 8, 16, tzinfo=ZoneInfo("Asia/Taipei"))
     date_after_start = order_taking_date_check(today)
     if flask.session.get("login") != True:
