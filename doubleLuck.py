@@ -1,4 +1,5 @@
 import flask
+import traceback
 from flask import render_template
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
@@ -17,6 +18,7 @@ from SQLmaintain import (
     calculate_reserved_amount,
     check_oder_data,
     order_taking_date_check,
+    ORDER_STATUS,
 )
 from config import get_db_path, get_secret_key, get_session_time
 
@@ -346,107 +348,7 @@ def create_order():
             return flask.jsonify(False, f"發生未預期錯誤，請聯繫程式開發者確認")
 
 
-# ===== 查詢我的訂單：目前是測試 route，回傳寫死的假資料，不碰 DB =====
-# TODO 換成真的 DB 時：
-#   - 查詢用 create_by = flask.session["employee_id"]，只回傳自己的單
-#   - 取消時後端要再檢查「是自己的單」且「狀態可取消」，再把 status 改成 order_canceled
-#   - 保留額與排單計算要排除 order_canceled
-CANCELABLE_STATUS = ("not_shipped", "not_paid")
-
-FAKE_MY_ORDERS = [
-    {
-        "order_id": "Od26-001",
-        "reserved": "保留",
-        "product_name": "文旦",
-        "spec": "10斤裝",
-        "qty": 2,
-        "subtotal": 1600,
-        "shipment_fee": 200,
-        "customer_name": "王小明",
-        "receiver_name": "王小明",
-        "receiver_phone": "0912345678",
-        "receiver_address": "台北市中正區重慶南路一段 1 號",
-        "payment_method": "Cash",
-        "order_notes": "",
-        "status": "not_shipped",
-        "ship_date_requested": None,
-        "created_at": "2026-08-16 10:20:00",
-    },
-    {
-        "order_id": "Od26-002",
-        "reserved": "排單",
-        "product_name": "文旦",
-        "spec": "15斤裝",
-        "qty": 1,
-        "subtotal": 1200,
-        "shipment_fee": 150,
-        "customer_name": "陳美麗",
-        "receiver_name": "林大華",
-        "receiver_phone": "0223456789",
-        "receiver_address": "新北市板橋區文化路一段 100 號",
-        "payment_method": "Transfer",
-        "order_notes": "送禮用，請勿附價格",
-        "status": "not_paid",
-        "ship_date_requested": "2026-09-01",
-        "created_at": "2026-08-17 14:05:00",
-    },
-    {
-        "order_id": "Od26-003",
-        "reserved": "保留",
-        "product_name": "文旦",
-        "spec": "20斤裝",
-        "qty": 1,
-        "subtotal": 1500,
-        "shipment_fee": 200,
-        "customer_name": "張志明",
-        "receiver_name": "張志明",
-        "receiver_phone": "0987654321",
-        "receiver_address": "台中市西區民權路 50 號",
-        "payment_method": "Cash",
-        "order_notes": "",
-        "status": "complete",
-        "ship_date_requested": None,
-        "created_at": "2026-08-18 09:00:00",
-    },
-    {
-        "order_id": "Od26-004",
-        "reserved": "排單",
-        "product_name": "文旦",
-        "spec": "10斤裝",
-        "qty": 3,
-        "subtotal": 2400,
-        "shipment_fee": 300,
-        "customer_name": "李春嬌",
-        "receiver_name": "李春嬌",
-        "receiver_phone": "0911222333",
-        "receiver_address": "高雄市苓雅區四維三路 2 號",
-        "payment_method": "Transfer",
-        "order_notes": "客戶來電取消",
-        "status": "order_canceled",
-        "ship_date_requested": None,
-        "created_at": "2026-08-19 16:30:00",
-    },
-    {
-        "order_id": "Od26-005",
-        "reserved": "保留",
-        "product_name": "文旦",
-        "spec": "10斤裝",
-        "qty": 1,
-        "subtotal": 800,
-        "shipment_fee": 100,
-        "customer_name": "陳美麗",
-        "receiver_name": "陳美麗",
-        "receiver_phone": "0933444555",
-        "receiver_address": "桃園市中壢區中正路 3 號",
-        "payment_method": "Cash",
-        "order_notes": "",
-        "status": "bad debt",
-        "ship_date_requested": None,
-        "created_at": "2026-08-20 11:45:00",
-    },
-]
-
-
+# ===== 查詢我的訂單：只能查詢、取消自己建立的單 =====
 @doubleluck.route("/order/my-orders", methods=["GET"])
 def to_my_orders_page():
     if flask.session.get("login") != True:
@@ -463,15 +365,15 @@ def search_my_orders():
         request_data = flask.request.get_json(silent=True) or {}
         keyword = str(request_data.get("keyword", "")).strip()
         status = str(request_data.get("status", "")).strip()
-        orders = FAKE_MY_ORDERS
-        if keyword:
-            orders = [
-                o
-                for o in orders
-                if keyword in o["receiver_name"] or keyword in o["customer_name"]
-            ]
-        if status:
-            orders = [o for o in orders if o["status"] == status]
+        if status and status not in ORDER_STATUS:
+            return flask.jsonify({"status": False, "data": []})
+        try:
+            orders = OrderTableCRUD.read_order_for_flask(
+                flask.session["employee_id"], keyword or None, status or None
+            )
+        except Exception:
+            traceback.print_exc()
+            return flask.jsonify({"status": False, "data": []}), 500
         return flask.jsonify({"status": True, "data": orders})
 
 
@@ -482,17 +384,13 @@ def cancel_my_order():
     else:
         request_data = flask.request.get_json(silent=True) or {}
         order_id = str(request_data.get("order_id", "")).strip()
-        order = next((o for o in FAKE_MY_ORDERS if o["order_id"] == order_id), None)
-        if order is None:
-            return flask.jsonify({"status": False, "message": f"查無訂單{order_id}"})
-        if order["status"] not in CANCELABLE_STATUS:
-            return flask.jsonify(
-                {"status": False, "message": f"訂單{order_id}目前的狀態不能取消"}
-            )
-        # 測試 route：不寫入 DB，假資料的狀態也不會改變
-        return flask.jsonify(
-            {"status": True, "message": f"訂單{order_id}已取消（測試，未寫入資料庫）"}
+        if not order_id:
+            return flask.jsonify({"status": False, "message": "缺少訂單編號"})
+        # 擁有者與狀態都在 cancel_order_for_flask 裡檢查，不靠前端藏按鈕
+        result, message = OrderTableCRUD.cancel_order_for_flask(
+            order_id, flask.session["employee_id"]
         )
+        return flask.jsonify({"status": result, "message": message})
 
 
 if __name__ == "__main__":
