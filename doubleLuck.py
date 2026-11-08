@@ -328,6 +328,7 @@ def create_order():
                 recorder,
                 payment_method=order_data["predict_payment_method"],
                 order_notes=order_data["order_notes"],
+                ship_date_requested=order_data.get("ship_date"),
             )
         else:
             return flask.jsonify(
