@@ -27,6 +27,10 @@ END_ORDER_TAKING = datetime(2026, 12, 31, tzinfo=ZoneInfo("Asia/Taipei"))
 HARVEST_DAY_PD = pd.Timestamp(2026, 11, 30)
 START_ORDER_TAKING_PD = pd.Timestamp(2026, 11, 1)
 
+ORDER_STATUS = ("not_shipped", "not_paid", "order_canceled", "complete", "bad debt")
+# 業務自己可以取消的狀態；完成、呆帳、已取消都不行
+CANCELABLE_STATUS = ("not_shipped", "not_paid")
+
 
 MAPPING_WEIGHT = {
     "pomelo-G-10": 10,
@@ -340,9 +344,73 @@ class OrderTableCRUD:
 
     @staticmethod
     def read_order_for_flask(
-        create_by, order_id=None, reciver_name=None, status="not_shipped"
-    ):  # 沒權限分級前，這個設計給flask只讀create是自己的
-        pass
+        create_by, keyword=None, status=None
+    ) -> list[dict[str, Any]]:
+        """查詢我的訂單：只回傳 create_by 自己建立的單。
+        keyword 部分比對收件人或訂購人姓名；status 由呼叫端先檢查是否合法。
+        個資範圍：電話、地址、匯款帳號、內部 id 都不回傳。"""
+        # 明確列出欄位，不用 SELECT *，避免個資被帶到前端
+        sql = """SELECT o.order_id, o.reserved, o.product_name, o.spec, o.qty,
+                        o.subtotal, o.shipment_fee, c.customer_name, o.receiver_name,
+                        o.payment_method, o.order_notes, o.status,
+                        o.ship_date_requested, o.created_at
+                 FROM orders AS o
+                 LEFT JOIN customers AS c ON o.customer_id = c.customer_id
+                 WHERE o.create_by = ?"""
+        params: list[Any] = [create_by]
+        if keyword:
+            # 跳脫 LIKE 的萬用字元，使用者打 % 或 _ 時當成一般文字
+            escaped = (
+                keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
+            sql += (
+                " AND (o.receiver_name LIKE ? ESCAPE '\\'"
+                " OR c.customer_name LIKE ? ESCAPE '\\')"
+            )
+            params += [f"%{escaped}%", f"%{escaped}%"]
+        if status:
+            sql += " AND o.status = ?"
+            params.append(status)
+        sql += " ORDER BY o.created_at DESC, o.id DESC"
+
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            cursor.execute(sql, tuple(params))
+            rows = cursor.fetchall()
+            columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+
+    @staticmethod
+    def cancel_order_for_flask(order_id, create_by) -> tuple[bool, str]:
+        """業務取消自己的單：只有 create_by 是自己、且狀態在 CANCELABLE_STATUS 才會成功。"""
+        placeholders = ", ".join("?" * len(CANCELABLE_STATUS))
+        try:
+            database = get_db_path()
+            with sqlite3.connect(database) as con:
+                cursor = con.cursor()
+                # 一條 SQL 同時檢查擁有者與狀態，不會有「先查再改」中間被改掉的問題
+                query = (
+                    "UPDATE orders SET status='order_canceled' "
+                    f"WHERE order_id=? AND create_by=? AND status IN ({placeholders})"
+                )
+                cursor.execute(query, (order_id, create_by, *CANCELABLE_STATUS))
+                if cursor.rowcount == 1:
+                    con.commit()
+                    return True, f"訂單{order_id}已取消"
+
+                cursor.execute(
+                    "SELECT status FROM orders WHERE order_id=? AND create_by=?",
+                    (order_id, create_by),
+                )
+                row = cursor.fetchone()
+            # 別人的單也回「查無訂單」，不透露這張單存在
+            if row is None:
+                return False, f"查無訂單{order_id}"
+            return False, f"訂單{order_id}目前的狀態不能取消"
+        except Exception as e:
+            traceback.print_exc()
+            return False, f"發生錯誤:{e}"
 
     @staticmethod
     def read_order_for_xlsx(year: int) -> pd.DataFrame:
@@ -710,6 +778,9 @@ class OrderTableCRUD:
         reservation = df.loc[df["order_id"] == order_id, "reserved"].iloc[0]
         create_by = df.loc[df["order_id"] == order_id, "create_by"].iloc[0]
         # print(f"訂單建立者{create_by}，訂單建立時間{create_time}，訂單品項:{product_name}，訂單保留or排單:{reservation}")
+
+        # 已取消的單不佔順位、不算待出貨重量（查詢的這張單本身除外）
+        df = df.loc[(df["status"] != "order_canceled") | (df["order_id"] == order_id)]
 
         if reservation == "保留":
             df = df.loc[
