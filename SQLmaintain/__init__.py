@@ -16,4 +16,5 @@ from .order import (
     order_taking_date_check,
     order_reserving_date_check,
     check_oder_data,
+    ORDER_STATUS,
 )
