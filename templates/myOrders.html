@@ -449,9 +449,8 @@
                 header,
                 dateEl,
                 createLine('品項', `${order.product_name} ${order.spec} × ${order.qty}`),
-                createLine('收件人', `${order.receiver_name} / ${order.receiver_phone}`),
-                createLine('地址', order.receiver_address),
-                createLine('訂購人', order.customer_name),
+                createLine('收件人', order.receiver_name),
+                createLine('訂購人', order.customer_name ?? ''),
                 createLine('金額', `貨款 ${order.subtotal} + 運費 ${order.shipment_fee} = ${orderTotal(order)}`),
                 createLine('付款方式', PAYMENT_LABELS[order.payment_method] ?? order.payment_method ?? ''),
             );
