@@ -493,6 +493,7 @@ class OrderTableCRUD:
         payment_method="Cash",
         transfer_account=None,
         order_notes=None,
+        ship_date_requested=None,
     ) -> tuple[bool, str]:
         try:
             check_result, receiver_phone, _ = check_phone(receiver_phone)
@@ -524,6 +525,7 @@ class OrderTableCRUD:
                 "payment_method": payment_method,
                 "transfer_account": transfer_account,
                 "order_notes": order_notes,
+                "ship_date_requested": ship_date_requested,
                 "create_by": create_by,
             }
             # print(column_dict)
@@ -630,7 +632,9 @@ class OrderTableCRUD:
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 # 用 IS 而不是 =，舊值是 NULL（例如沒填備註）時才比對得到
-                query = f"UPDATE orders SET {column}=? WHERE order_id=? AND {column} IS ?"
+                query = (
+                    f"UPDATE orders SET {column}=? WHERE order_id=? AND {column} IS ?"
+                )
                 cursor.execute(query, (new_data, order_id, old_data))
                 if cursor.rowcount == 1:
                     con.commit()
@@ -886,6 +890,13 @@ def check_oder_data(order_data) -> tuple[bool, str]:
         if not isinstance(order_data[str_item], str):
             problem_info.append(str_item)
             # print(f"這個資料真的不是字串:{order_data[str_item]}")
+    # 指定出貨日是選填：沒指定時前端送 null；有填就必須是 YYYY-MM-DD
+    ship_date = order_data.get("ship_date")
+    if ship_date is not None:
+        try:
+            datetime.strptime(ship_date, "%Y-%m-%d")
+        except (TypeError, ValueError):
+            problem_info.append("ship_date")
     if len(problem_info) == 0:
         return True, "no problems"
     else:
