@@ -531,7 +531,63 @@ class OrderTableCRUD:
             "transfer_account",
             "order_notes",
         ]
-        pass
+        int_columns = ["qty", "subtotal", "shipment_fee"]
+        try:
+            # column 會直接拼進 SQL，一定要先擋白名單
+            if column not in columns:
+                return False, f"欄位{column}不可修改"
+
+            # 舊值和新值都要整理成 DB 裡的格式，舊值比對才會對得上
+            if column == "receiver_phone":
+                ok, old_data, _ = check_phone(old_data)
+                if not ok:
+                    return False, "輸入的舊電話號碼格式不正確"
+                ok, new_data, _ = check_phone(new_data)
+                if not ok:
+                    return False, "輸入的新電話號碼格式不正確"
+            elif column == "payment_method":
+                if new_data not in ["Cash", "Transfer"]:
+                    return False, "付款只有現金與匯款方式"
+            elif column in int_columns:
+                try:
+                    old_data = int(old_data)
+                    new_data = int(new_data)
+                except (TypeError, ValueError):
+                    return False, "輸入的數量、貨款、運費並非數字"
+
+            if old_data == new_data:
+                return False, "新值與舊值相同，不需修改"
+
+            database = get_db_path()
+            with sqlite3.connect(database) as con:
+                cursor = con.cursor()
+                # 用 IS 而不是 =，舊值是 NULL（例如沒填備註）時才比對得到
+                query = f"UPDATE orders SET {column}=? WHERE order_id=? AND {column} IS ?"
+                cursor.execute(query, (new_data, order_id, old_data))
+                if cursor.rowcount == 1:
+                    con.commit()
+                    return (
+                        True,
+                        f"已將{order_id}的欄位{column}從{old_data}修改為{new_data}",
+                    )
+
+                # 沒有更新到：分辨是找不到訂單，還是舊值不符
+                cursor.execute(
+                    f"SELECT {column} FROM orders WHERE order_id=?", (order_id,)
+                )
+                row = cursor.fetchone()
+            if row is None:
+                return False, f"找不到訂單編號為{order_id}的資料"
+            return (
+                False,
+                f"舊值不符，未修改。{order_id}的欄位{column}目前是{row[0]}",
+            )
+        except sqlite3.IntegrityError as e:
+            traceback.print_exc()
+            return False, f"新值不符合資料表限制:{e}"
+        except Exception as e:
+            traceback.print_exc()
+            return False, f"發生錯誤:{e}"
 
     @staticmethod
     def order_shipping(order_id, shipment_date) -> str:  # 出貨確認
