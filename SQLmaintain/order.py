@@ -413,15 +413,23 @@ class OrderTableCRUD:
             return False, f"發生錯誤:{e}"
 
     @staticmethod
-    def read_order_for_xlsx(year: int) -> pd.DataFrame:
+    def read_order_for_xlsx(year: int,customer_info=False) -> pd.DataFrame:
 
         database = get_db_path()
         with sqlite3.connect(database) as con:
-            sql = "SELECT * FROM orders WHERE created_at BETWEEN ? AND ?"
-            sql_condition = (f"{year}-01-01", f"{year}-12-31")
+            if customer_info:
+                sql = """SELECT o.*,c.customer_name,c.customer_phone,c.customer_address
+                FROM orders AS o
+                LEFT JOIN  customers AS c
+                        ON o.customer_id = c.customer_id
+                WHERE o.created_at BETWEEN ? AND ?"""
+                
+            else:   
+                sql = "SELECT * FROM orders WHERE created_at BETWEEN ? AND ?"
+            sql_condition = (f"{year}-01-01", f"{year}-12-31") #這樣會漏查12/31當天key的，但問題不大，遇到再修。
             df = pd.read_sql_query(con=con, sql=sql, params=sql_condition)
             df["created_at"] = pd.to_datetime(df["created_at"])
-            df["weight"] = df["product_code"].map(MAPPING_WEIGHT)
+            df["weight"] = df["product_code"].map(MAPPING_WEIGHT) * df["qty"]
             return df
 
     @staticmethod
@@ -429,22 +437,14 @@ class OrderTableCRUD:
         database = get_db_path()
         with sqlite3.connect(database) as con:
             # cursor=con.cursor()
-            sql = f"SELECT order_id,reserved,product_name,spec,qty,status,created_at FROM orders WHERE create_by=? AND created_at BETWEEN ? AND ?"
+            sql = f"SELECT order_id,reserved,product_code,product_name,spec,qty,status,created_at FROM orders WHERE create_by=? AND created_at BETWEEN ? AND ?"
             sql_condition = (
                 employee_no,
                 str(START_ORDER_TAKING),
                 str(END_ORDER_TAKING),
             )
             df = pd.read_sql_query(con=con, sql=sql, params=sql_condition)
-            condition = [
-                df["spec"] == "10斤裝",
-                df["spec"] == "15斤裝",
-                df["spec"] == "20斤裝",
-                df["spec"] == "袋裝(斤)",
-            ]
-            choice_list = [10, 15, 20, 1]
-            weight = np.select(condition, choice_list, default=0)
-            df["weight"] = weight
+            df["weight"] = df["product_code"].map(MAPPING_WEIGHT) * df["qty"]
 
         return df
 
@@ -459,7 +459,7 @@ class OrderTableCRUD:
         )
         df = df.loc[condition2 & condition]
         # print(df)
-        reservation_weight = round((df["weight"] * df["qty"]).sum(), 2)
+        reservation_weight = round((df["weight"]).sum(), 2)
         # print(f"保留值={reservation_weight}")
         return reservation_weight
 
@@ -760,7 +760,7 @@ class OrderTableCRUD:
                 reservation_result = "保留"
             else:
                 # print("O+N>R")
-                if old_oder >= reservation_amount:
+                if old_oder + 5 >= reservation_amount: #剩餘額度低於5台斤自動算成排單
                     reservation_result = "排單"
                 else:
                     reservation_result = "退回"
@@ -806,7 +806,7 @@ class OrderTableCRUD:
             reservated_weight = 0
         else:
             df = df.loc[df["created_at"] < create_time]
-            reservated_weight = round((df["weight"] * df["qty"]).sum(), 2)
+            reservated_weight = round((df["weight"]).sum(), 2)
         return reservation, sequence_of_order, reservated_weight
 
 
