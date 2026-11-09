@@ -18,6 +18,7 @@ from SQLmaintain import (
     calculate_reserved_amount,
     check_oder_data,
     order_taking_date_check,
+    order_reserving_date_check,
     ORDER_STATUS,
 )
 from config import get_db_path, get_secret_key, get_session_time
@@ -258,8 +259,9 @@ def search_customer():
 @doubleluck.route("/order/create", methods=["POST"])
 def create_order():
     # today = datetime.now(ZoneInfo("Asia/Taipei"))
-    today = datetime(2026, 8, 16, tzinfo=ZoneInfo("Asia/Taipei"))
+    today = datetime(2026, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
     date_after_start = order_taking_date_check(today)
+    in_reserving_period = order_reserving_date_check(today)
     if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
     elif not date_after_start:
@@ -304,12 +306,15 @@ def create_order():
         else:
             customer_id = customer_info[0]["customer_id"]
         # 計算並取得業務員的保留額與使用狀況
-        salse_record = OrderTableCRUD.get_sales_df(recorder)
-        reservation_weight = OrderTableCRUD.get_sales_reservation(salse_record)
-        reservation = calculate_reserved_amount(recorder)
-        reservation_result = OrderTableCRUD.check_new_order_status(
-            product_code, reservation_weight, order_data["qty"], reservation
-        )
+        if in_reserving_period:
+            salse_record = OrderTableCRUD.get_sales_df(recorder)
+            reservation_weight = OrderTableCRUD.get_sales_reservation(salse_record)
+            reservation = calculate_reserved_amount(recorder)
+            reservation_result = OrderTableCRUD.check_new_order_status(
+                product_code, reservation_weight, order_data["qty"], reservation
+            )
+        else:
+            reservation_result = "排單"
         # print(reservation_result)
         # 先寫正常接單的部分，保留或排序
         if reservation_result != "退回":
