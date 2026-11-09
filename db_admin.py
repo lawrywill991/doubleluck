@@ -1,5 +1,5 @@
 import sys
-
+import os
 # print(sys.path)
 from SQLmaintain import (
     EmployeeTableCRUD,
@@ -22,10 +22,10 @@ from SQLmaintain import (
 from SQLmaintain import (
     order_taking_date_check,
     order_reserving_date_check,
-    check_oder_data,
+    check_oder_data,default_date_range
 )
 from migrations import create_order_table, create_order_trigger, alter_weight_column
-
+from config import get_file_export_path
 
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
@@ -640,7 +640,19 @@ def main():
                     print("輸入格式非訂單編號，請重新輸入 \n")
             else:
                 print("訂單表格已無紀錄")
-        elif function_choice == "XLSX" and table_choice.upper == "G":
+        elif function_choice == "XLSX" and table_choice.upper() == "G":
+            print("匯出今年完整訂單表")
+            start_date,today,end_date=default_date_range("orders")
+            year=today.year
+            base_location=get_file_export_path()
+            df=OrderTableCRUD.read_order_for_xlsx(year,customer_info=True)
+            # print(df)
+            filename = input("請輸入存檔檔名 ENTER=今天 \n") or str(today)
+            filename += ".xlsx"
+            file_path = os.path.join(base_location,filename)
+            # print(file_path)
+            df.to_excel(file_path,engine="openpyxl",index=False)
+            print(f"今年完整訂單已匯出，檔案位址為:{file_path}")
 
             pass
 
@@ -668,14 +680,15 @@ def main():
             break
 
         elif function_choice == "T" and table_choice.upper() == "G":
-            pass
-            # employee_no = input("請輸入查詢的員工編號SHR \n")
-            # test_result = OrderTableCRUD.get_sales_df(employee_no)
-            # print(test_result)
-            # test_status1 = OrderTableCRUD.get_sales_reservation(test_result)
-            # print(test_status1)
-            # test_status2 = calculate_reserved_amount(employee_no)
-            # print(test_status2 - test_status1)
+            # employee_no = "SHR08"
+            
+            employee_no = input("請輸入查詢的員工編號SHR \n")
+            test_result = OrderTableCRUD.get_sales_df(employee_no)
+            print(test_result)
+            test_status1 = OrderTableCRUD.get_sales_reservation(test_result)
+            print(test_status1)
+            test_status2 = calculate_reserved_amount(employee_no)
+            print(test_status2 - test_status1)
 
         elif function_choice == "T" and table_choice.upper() == "E":
             recorder = "SHR03"
