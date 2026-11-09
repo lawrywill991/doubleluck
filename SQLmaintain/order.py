@@ -459,7 +459,8 @@ class OrderTableCRUD:
         )
         df = df.loc[condition2 & condition]
         # print(df)
-        reservation_weight = round((df["weight"]).sum(), 2)
+        # 轉成 Python float，numpy.int64 無法直接 jsonify
+        reservation_weight = float(round((df["weight"]).sum(), 2))
         # print(f"保留值={reservation_weight}")
         return reservation_weight
 
