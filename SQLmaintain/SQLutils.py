@@ -2,12 +2,11 @@ import re
 import sqlite3
 import string
 import random
-from datetime import datetime,date
+from datetime import datetime, date
 from dateutil import parser
 
 
 from config import get_db_path
-
 
 
 class DataTransfer:  # 要回傳資料給前端時把read結果解析的方法集
@@ -52,9 +51,7 @@ class DataTransfer:  # 要回傳資料給前端時把read結果解析的方法�
             int_duration = [int(round(x * 100)) for x in duration]
             return sum(int_duration) / 100
         except:
-            invalid_item = next(
-                x for x in duration if not isinstance(x, (int, float))
-            )
+            invalid_item = next(x for x in duration if not isinstance(x, (int, float)))
             raise TypeError(f"{invalid_item} not a number")
 
     def to_worker_dicts(self, nick_name=True):
@@ -72,21 +69,22 @@ class DataTransfer:  # 要回傳資料給前端時把read結果解析的方法�
             dict.pop("id")
             dict.pop("create_by")
             dict.pop("created_at")
+            dict.pop("unit_weight")
         return self.data
 
-    def remove_information(self,information_keys=("id","crate_by","created_at")):
+    def remove_information(self, information_keys=("id", "crate_by", "created_at")):
         for dicts in self.data:
             for key in information_keys:
                 dicts.pop(key)
         return self.data
-    
+
+
 class database_manager:
-    
-    
+
     @staticmethod
     def check_tables(database=None):
         if database is None:
-            database= get_db_path()
+            database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = 'SELECT * FROM sqlite_master WHERE type="table" AND name != "sqlite_sequence"'
@@ -99,7 +97,7 @@ class database_manager:
 
     @staticmethod
     def delete_table(table_name):
-        database= get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = f"DROP TABLE IF EXISTS {table_name}   "
@@ -109,7 +107,7 @@ class database_manager:
 
     @staticmethod
     def check_table_columns(table_name):
-        database= get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = f'SELECT * FROM pragma_table_info("{table_name}")'
@@ -122,22 +120,24 @@ class database_manager:
 
     @staticmethod
     def check_trigger():
-        database= get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
-            query = """SELECT name, tbl_name FROM sqlite_schema WHERE type = 'trigger'"""
+            query = (
+                """SELECT name, tbl_name FROM sqlite_schema WHERE type = 'trigger'"""
+            )
             cursor.execute(query)
-            triggers=cursor.fetchall()
+            triggers = cursor.fetchall()
 
             if triggers:
                 return [trigger[0] for trigger in triggers]
             else:
                 return []
         # return triggers
-    
+
     @staticmethod
     def drop_trigger(trigger_name):
-        database= get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = f"""DROP TRIGGER IF EXISTS {trigger_name}"""
@@ -146,78 +146,98 @@ class database_manager:
         return f"Trigger: {trigger_name} 移除成功"
 
 
-
-
 def check_phone(phone_no):
     if not isinstance(phone_no, str):
-        return False,phone_no, f"傳入數值非文字格式"
-    phone_no = re.sub(r"\D", "", phone_no)
+        return False, phone_no, f"傳入數值非文字格式"
+    phone_no = re.sub(r"[^\d#]", "", phone_no)
     if re.fullmatch(r"09\d{8}", phone_no):
-        return True, phone_no,"mobile phone"
+        return True, phone_no, "mobile phone"
     elif re.fullmatch(r"0\d{9}", phone_no):
         return True, phone_no, "local phone"
     elif re.fullmatch(r"0\d{8}", phone_no):
         return True, phone_no, "local phone(other)"
+    elif re.fullmatch(r"0\d{9}#\d+", phone_no):
+        return True, phone_no, "local phone with Extension"
+    elif re.fullmatch(r"0\d{8}#\d+", phone_no):
+        return True, phone_no, "local phone with Extension"
     else:
-        return False,None, "not a phone number"
+        return False, None, "not a phone number"
+
 
 def generated_randompassword():
-    aproved_alphabet=string.ascii_letters + string.digits
-    generated_randompassword="".join(random.choices(aproved_alphabet,k=6))
+    aproved_alphabet = string.ascii_letters + string.digits
+    generated_randompassword = "".join(random.choices(aproved_alphabet, k=6))
 
     return generated_randompassword
 
-def check_internal_id_format(internal_id)->tuple[bool,str|None,str]:
+
+def check_internal_id_format(internal_id) -> tuple[bool, str | None, str]:
     if not isinstance(internal_id, str):
-        return False,None,f"傳入數值非文字格式"
+        return False, None, f"傳入數值非文字格式"
     if re.fullmatch(r"Cn\d{2}-\d{3}", internal_id):
-        return True,internal_id,"customer_id"
-    elif re.fullmatch(r"On\d{2}-\d{4}",internal_id):
-        return True,internal_id,"order_id"
-    elif re.fullmatch(r"PTL\d{2}",internal_id):
-        return True,internal_id,"employee_no"
-    elif re.fullmatch(r"SHR\d{2}",internal_id):
-        return True,internal_id,"employee_no"
+        return True, internal_id, "customer_id"
+    elif re.fullmatch(r"On\d{2}-\d{4}", internal_id):
+        return True, internal_id, "order_id"
+    elif re.fullmatch(r"PTL\d{2}", internal_id):
+        return True, internal_id, "employee_no"
+    elif re.fullmatch(r"SHR\d{2}", internal_id):
+        return True, internal_id, "employee_no"
     else:
-        return False,None,"not internal used id" 
+        return False, None, "not internal used id"
 
-def check_datetime_formuler(input_date_formuler)->tuple[bool,date|str]:
-    
+
+def check_datetime_formuler(input_date_formuler) -> tuple[bool, date | str]:
+
     try:
-        if isinstance(input_date_formuler,date):
-            return True,input_date_formuler 
-        input_date_formuler=input_date_formuler.strip()
-        m=re.fullmatch(r"\s*(\d{3})[./-](\d{1,2})[./-](\d{1,2})\s*",input_date_formuler)
-        if m: 
+        if isinstance(input_date_formuler, date):
+            return True, input_date_formuler
+        input_date_formuler = input_date_formuler.strip()
+        m = re.fullmatch(
+            r"\s*(\d{3})[./-](\d{1,2})[./-](\d{1,2})\s*", input_date_formuler
+        )
+        if m:
             year, month, day = map(int, m.groups())
-            return True,date(year+1911,month,day)
+            return True, date(year + 1911, month, day)
         else:
-            return True,parser.parse(input_date_formuler).date()
-        
-    except Exception as e:
-        return False,f"{e}"
+            return True, parser.parse(input_date_formuler).date()
 
-def date_compliarty(start_date,end_date)->bool:
-    bool1,start_date = check_datetime_formuler(start_date)
-    bool2,end_date  = check_datetime_formuler(end_date)
-    
-    if not bool1 or not bool2: 
+    except Exception as e:
+        return False, f"{e}"
+
+
+def date_compliarty(start_date, end_date) -> bool:
+    bool1, start_date = check_datetime_formuler(start_date)
+    bool2, end_date = check_datetime_formuler(end_date)
+
+    if not bool1 or not bool2:
         return False
-    assert isinstance(start_date, date)
-    assert isinstance(end_date, date)
-    if start_date>end_date:
+    assert isinstance(
+        start_date, date
+    )  # 防止日期物件跑到這邊錯亂了，所以加用assert防止資料流錯亂(也防止前面改動沒改到後面)
+    assert isinstance(
+        end_date, date
+    )  # assert另一層目的是讓pylance別吵，但pylance是正確的(type hint問題)
+    if start_date > end_date:
         return False
     else:
         return True
 
 
-def default_date_range():
+def default_date_range(usage_sys) -> tuple[date, date, date]:
     today = date.today()
     year = today.year
-    if today.month <= 9:
-        start_date = date(year - 1, 9, 30)
-    else:
-        start_date = date(year, 10, 1)
-    return start_date,today
-    
-        
+    if usage_sys == "orders":
+        if today.month <= 9:
+            start_date = date(year - 1, 10, 1)
+            end_date = date(year, 9, 30)
+        else:
+            start_date = date(year, 10, 1)
+            end_date = date(year + 1, 9, 30)
+    else:  # 我先把工時的區間與訂單的區間都先寫一樣都是去年10月到今年9月，以後好調整。
+        if today.month <= 9:
+            start_date = date(year - 1, 10, 1)
+            end_date = date(year, 9, 30)
+        else:
+            start_date = date(year, 10, 1)
+        end_date = date(year + 1, 9, 30)
+    return start_date, today, end_date

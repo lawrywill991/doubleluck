@@ -1,17 +1,61 @@
 import sqlite3
 import traceback
+import math
 from typing import Any
-# from datetime import date
+from datetime import datetime, date
+from zoneinfo import ZoneInfo
+import pandas as pd
+import numpy as np
 
-from .SQLutils import check_phone,check_internal_id_format
+from .SQLutils import check_phone, check_internal_id_format
 from config import get_db_path
 
+LAST_PRODUCTION = 4130
+RESERVE_RATIO = {
+    "SHR01": 0.01613,
+    "SHR03": 0.06452,
+    "SHR05": 0.23226,
+    "SHR06": 0.64517,
+    "SHR07": 0.01613,
+    "SHR08": 0.02581,
+}
+# 2027正式採收日(2027,8,21)
+# 2027開始接單日(2027,8,15)
+HARVEST_DAY = datetime(2026, 8, 21, tzinfo=ZoneInfo("Asia/Taipei"))
+START_ORDER_TAKING = datetime(2026, 8, 15, tzinfo=ZoneInfo("Asia/Taipei"))
+END_ORDER_TAKING = datetime(2026, 12, 31, tzinfo=ZoneInfo("Asia/Taipei"))
+HARVEST_DAY_PD = pd.Timestamp(2026, 11, 30)
+START_ORDER_TAKING_PD = pd.Timestamp(2026, 11, 1)
+
+ORDER_STATUS = ("not_shipped", "not_paid", "order_canceled", "complete", "bad debt")
+# 業務自己可以取消的狀態；完成、呆帳、已取消都不行
+CANCELABLE_STATUS = ("not_shipped", "not_paid")
+
+
+MAPPING_WEIGHT = {
+    "pomelo-G-10": 10,
+    "pomelo-G-15": 15,
+    "pomelo-G-20": 20,
+    "pomelo-G-1": 1,
+    "pomelo-U-10": 10,
+    "pomelo-U-15": 15,
+    "pomelo-U-20": 20,
+    "pomelo-U-1": 1,
+    "pomelo-B-10": 10,
+    "pomelo-B-15": 15,
+    "pomelo-B-20": 20,
+    "pomelo-B-1": 1,
+    "pomelo-S-10": 10,
+    "pomelo-S-15": 15,
+    "pomelo-S-20": 20,
+    "pomelo-S-1": 1,
+}  # 這個太麻煩，之後要乾脆寫進去products table來調用比較乾脆
 
 
 class CustomerTableCRUD:
     @staticmethod
     def create_customer_table():
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = """CREATE TABLE customers (
@@ -36,7 +80,7 @@ class CustomerTableCRUD:
 
     @staticmethod
     def create_customer_trigger(table="customers"):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = f"""CREATE TRIGGER trg_customer_id
@@ -55,22 +99,25 @@ class CustomerTableCRUD:
         return f"{table}表格的Trigger: trg_customer_id 建立成功"
 
     @staticmethod
-    def read_customer_table(customer_id=None,customer_name=None):
+    def read_customer_table(customer_id=None, customer_name=None):
         if customer_id is not None or customer_name is not None:
-            column_dict={"customer_id":customer_id,"customer_name":customer_name,}
-            data_dict={k:v for k,v in column_dict.items() if v is not None}
-            data_keys=list(data_dict.keys())
+            column_dict = {
+                "customer_id": customer_id,
+                "customer_name": customer_name,
+            }
+            data_dict = {k: v for k, v in column_dict.items() if v is not None}
+            data_keys = list(data_dict.keys())
             # print(data_keys)
-            condition_columns=[]
+            condition_columns = []
             for key in data_keys:
                 key += "=?"
                 condition_columns.append(key)
-            condition_statement=" AND ".join(condition_columns)
-            values=list(data_dict.values())
+            condition_statement = " AND ".join(condition_columns)
+            values = list(data_dict.values())
 
             sql = f"""SELECT * FROM customers WHERE {condition_statement}"""
 
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 cursor.execute(sql, tuple(values))
@@ -79,7 +126,7 @@ class CustomerTableCRUD:
                 customers_data = [dict(zip(columns, row)) for row in customers]
                 return customers_data
         else:
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 query = "SELECT * FROM customers"
@@ -90,13 +137,13 @@ class CustomerTableCRUD:
                 return customers_data
 
     @staticmethod
-    def customer_fuzzy_search(customer_name)->list[dict]:
-        database=get_db_path()
+    def customer_fuzzy_search(customer_name) -> list[dict]:
+        database = get_db_path()
         with sqlite3.connect(database) as con:
-            cursor=con.cursor()
-            query="SELECT * FROM customers WHERE customer_name LIKE ?"
-            data =(f"%{customer_name}%",)
-            cursor.execute(query,data)
+            cursor = con.cursor()
+            query = "SELECT * FROM customers WHERE customer_name LIKE ?"
+            data = (f"%{customer_name}%",)
+            cursor.execute(query, data)
             customers = cursor.fetchall()
             columns = [col[0] for col in cursor.description]
             customers_data = [dict(zip(columns, row)) for row in customers]
@@ -113,58 +160,67 @@ class CustomerTableCRUD:
         transfer_account=None,
     ):
         try:
-            check_result,customer_phone,_= check_phone(customer_phone)           
+            check_result, customer_phone, _ = check_phone(customer_phone)
             if not check_result:
                 return False, "輸入電話號碼格式不正確"
             if payment_method not in ["Cash", "Transfer"]:
                 return False, "付款只有現金與匯款方式"
             if payment_method == "Transfer" and transfer_account is None:
                 return False, "轉帳客戶請輸入預計匯款帳戶"
-            
-            column_dict={"customer_name":customer_name,
-                       "customer_phone":customer_phone,
-                       "customer_address":customer_address,
-                       "payment_method":payment_method,
-                       "transfer_account":transfer_account,
-                       "note":note,
-                       "create_by":create_by}
-            required_column=["customer_name","customer_phone","customer_address","payment_method","create_by"]
-            data_dict={k:v for k,v in column_dict.items() if k in required_column or v is not None}
+
+            column_dict = {
+                "customer_name": customer_name,
+                "customer_phone": customer_phone,
+                "customer_address": customer_address,
+                "payment_method": payment_method,
+                "transfer_account": transfer_account,
+                "note": note,
+                "create_by": create_by,
+            }
+            required_column = [
+                "customer_name",
+                "customer_phone",
+                "customer_address",
+                "payment_method",
+                "create_by",
+            ]
+            data_dict = {
+                k: v
+                for k, v in column_dict.items()
+                if k in required_column or v is not None
+            }
             # print(data_dict)
             columns = ", ".join(data_dict.keys())
             placeholders = ", ".join("?" * len(data_dict))
 
             sql = f"""INSERT INTO customers ({columns}) VALUES ({placeholders})"""
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 cursor.execute(sql, tuple(data_dict.values()))
+                new_id = cursor.lastrowid  # 用剛寫入那筆的id查，避免同名客戶抓錯
+                query = "SELECT customer_id FROM customers WHERE id=?"
+                cursor.execute(query, (new_id,))
+                customer_id = cursor.fetchone()[0]
                 con.commit()
-            with sqlite3.connect(database) as con:
-                cursor = con.cursor()
-                query = (
-                    f"SELECT customer_id FROM customers WHERE customer_name=?"
-                )
-                data = (customer_name,)
-                cursor.execute(query, data)
-                customer_id = cursor.fetchone()
             # customer_id = "測試ID"
             return (
                 True,
                 f"客戶{customer_name}資料建立成功，客戶編號為{customer_id}",
             )
         except sqlite3.IntegrityError as e:
-            if 'UNIQUE' in str(e):
+            if "UNIQUE" in str(e):
                 return False, f"已有此客戶名稱{customer_name}"
             else:
                 traceback.print_exc()
-                return False, f"發生錯誤:{e}"  
+                return False, f"發生錯誤:{e}"
         except Exception as e:
             traceback.print_exc()
             return False, f"發生錯誤:{e}"
+
     @staticmethod
     def delete_customer(id):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = "DELETE FROM customers WHERE id=?"
@@ -172,46 +228,48 @@ class CustomerTableCRUD:
             cursor.execute(query, data)
             con.commit()
         return f"已從customers表格中刪除{id}紀錄"
-    @staticmethod
-    def read_customer_for_flask(customer_name):
-        database=get_db_path()
-        with sqlite3.connect(database) as con:
-            cursor=con.cursor()
-            query="SELECT * FROM customers WHRER custmoer_name=?"
-            data=(customer_name,)
-            cursor.execute(query,data)
-            customer_info=cursor.fetchall()
-        if customer_info is None:
-            return False,f"資料庫中查無客戶名稱{customer_name}"
-        elif len(customer_info)>1:
-            columns = [col[0] for col in cursor.description]
-            customer_data = [dict(zip(columns, row)) for row in customer_info]
-            customer_data[0].pop('id')
-            customer_data[0].pop('create_by')
-            return False,customer_info
-        else:
-            columns = [col[0] for col in cursor.description]
-            customer_data = [dict(zip(columns, row)) for row in customer_info]
-            customer_data[0].pop('id')
-            customer_data[0].pop('create_by')
-            # customer_data[0].pop('created_at')
-            return True,customer_info
 
     @staticmethod
-    def update_customer(customer_id,column,new_data):
-        columns=['customer_name','customer_phone','customer_address','customer_level','payment_method','transfer_account','notes']
+    def read_customer_for_flask(customer_name):
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            # 只回傳前端需要的欄位，避免匯款帳號等資料送到前端
+            query = (
+                "SELECT customer_name, customer_phone, customer_address "
+                "FROM customers WHERE customer_name=?"
+            )
+            cursor.execute(query, (customer_name,))
+            customer_info = cursor.fetchall()
+            columns = [col[0] for col in cursor.description]
+        if not customer_info:
+            return False, []
+        customer_data = [dict(zip(columns, row)) for row in customer_info]
+        return True, customer_data
+
+    @staticmethod
+    def update_customer(customer_id, column, new_data):
+        columns = [
+            "customer_name",
+            "customer_phone",
+            "customer_address",
+            "customer_level",
+            "payment_method",
+            "transfer_account",
+            "notes",
+        ]
         try:
-            customer_data=CustomerTableCRUD.read_customer_table(customer_id=customer_id)
+            customer_data = CustomerTableCRUD.read_customer_table(
+                customer_id=customer_id
+            )
             if not customer_data:
-                return False,f"找不到客戶編號為{customer_id}的資料"
-            
+                return False, f"找不到客戶編號為{customer_id}的資料"
+
             if column in columns:
-                database=get_db_path()
+                database = get_db_path()
                 with sqlite3.connect(database) as con:
                     cursor = con.cursor()
-                    query = (
-                        f"UPDATE customers SET {column}=? WHERE customer_id=?"
-                    )
+                    query = f"UPDATE customers SET {column}=? WHERE customer_id=?"
                     data = (new_data, customer_id)
                     cursor.execute(query, data)
                     con.commit()
@@ -222,85 +280,47 @@ class CustomerTableCRUD:
             traceback.print_exc()
             return False, f"發生錯誤:{e}"
 
+
 class OrderTableCRUD:
-    @staticmethod
-    def create_order_table():
-        database=get_db_path()
-        with sqlite3.connect(database) as con:
-            cursor = con.cursor()
-            query = """CREATE TABLE orders (
-                    id INTEGER PRIMARY KEY,
-                    order_id TEXT UNIQUE,
-                    product_code TEXT NOT NULL REFERENCES products(product_code),
-                    product_name TEXT NOT NULL,
-                    spec TEXT NOT NULL,
-                    qty INTEGER NOT NULL CHECK(qty >=1),
-                    customer_id TEXT NOT NULL REFERENCES customers(customer_id),
-                    subtotal INTEGER NOT NULL,
-                    shipment_fee INTEGER NOT NULL,
-                    ship_date_requested DATETIME,
-
-                    receiver_name TEXT NOT NULL,
-                    receiver_phone TEXT NOT NULL CHECK (
-                    receiver_phone GLOB '09[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' 
-                    OR receiver_phone GLOB '0[2-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
-                    OR receiver_phone GLOB '0[2-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
-                    receiver_address TEXT NOT NULL ,
-                                        
-                    payment_method TEXT CHECK (payment_method IN ('Cash','Transfer')),
-                    transfer_account TEXT,
-                    order_notes TEXT,
-                    status TEXT CHECK (status IN ("not_shipped","not_paid","order_canceled","complete","bad debt")) DEFAULT 'not_shipped',
-                    shipment_date DATETIME,
-                    payment_reciving_date DATETIME,
-                    create_by TEXT NOT NULL REFERENCES employee(employee_no),
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                    );"""
-            cursor.execute(query)
-            con.commit()
 
     @staticmethod
-    def create_order_trigger(table="orders")->str:
-        database=get_db_path()
-        with sqlite3.connect(database) as con:
-            cursor = con.cursor()
-            query = f"""CREATE TRIGGER trg_order_id
-            AFTER INSERT ON {table}
-            FOR EACH ROW
-            BEGIN
-                UPDATE orders
-                SET order_id =
-                printf('On') ||
-                substr(strftime('%Y', NEW.created_at), 3, 2) || '-' ||
-                printf('%04d', NEW.id)
-                WHERE id = NEW.id;
-            END;"""
-            cursor.execute(query)
-            con.commit()
-        return f"{table}表格的Trigger: trg_order_id 建立成功"
-
-
-    @staticmethod
-    def read_order_table(order_id=None,receiver_name=None,status=None)->list[dict[Any,Any]]:
-        status_list=["not_shipped","not_paid","order_canceled","complete","bad debt"] #應該要把檢查的段落放在db_admin與flask那裏
+    def read_order_table(
+        order_id=None, receiver_name=None, status=None
+    ) -> list[dict[Any, Any]]:
+        status_list = [
+            "not_shipped",
+            "not_paid",
+            "order_canceled",
+            "complete",
+            "bad debt",
+        ]  # 應該要把檢查的段落放在db_admin與flask那裏
 
         if order_id is not None or receiver_name is not None or status is not None:
-            if status not in [status_list,None]: #應該要把檢查的段落放在db_admin與flask那裏
-                return [{"read result":"wrong status"}]#應該要把檢查的段落放在db_admin與flask那裏
-            column_dict={"order_id":order_id,"receiver_name":receiver_name,"status":status}
-            data_dict={k:v for k,v in column_dict.items() if v is not None}
-            data_keys=list(data_dict.keys())
+            if status not in [
+                status_list,
+                None,
+            ]:  # 應該要把檢查的段落放在db_admin與flask那裏
+                return [
+                    {"read result": "wrong status"}
+                ]  # 應該要把檢查的段落放在db_admin與flask那裏
+            column_dict = {
+                "order_id": order_id,
+                "receiver_name": receiver_name,
+                "status": status,
+            }
+            data_dict = {k: v for k, v in column_dict.items() if v is not None}
+            data_keys = list(data_dict.keys())
             # print(data_keys)
-            condition_columns=[]
+            condition_columns = []
             for key in data_keys:
                 key += "=?"
                 condition_columns.append(key)
-            condition_statement=" AND ".join(condition_columns)
-            values=list(data_dict.values())
+            condition_statement = " AND ".join(condition_columns)
+            values = list(data_dict.values())
 
             sql = f"""SELECT * FROM orders WHERE {condition_statement}"""
 
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 cursor.execute(sql, tuple(values))
@@ -310,111 +330,347 @@ class OrderTableCRUD:
                 return customers_data
 
         else:
-            sql= """SELECT * FROM orders"""
-            database=get_db_path()
+            sql = """SELECT * FROM orders"""
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
-                cursor.execute(sql,)
+                cursor.execute(
+                    sql,
+                )
                 customers = cursor.fetchall()
                 columns = [col[0] for col in cursor.description]
                 customers_data = [dict(zip(columns, row)) for row in customers]
                 return customers_data
 
     @staticmethod
-    def read_order_for_flask(create_by,order_id=None,reciver_name=None,status="not_shipped"):#沒權限分級前，這個設計給flask只讀create是自己的
-        pass
+    def read_order_for_flask(
+        create_by, keyword=None, status=None
+    ) -> list[dict[str, Any]]:
+        """查詢我的訂單：只回傳 create_by 自己建立的單。
+        keyword 部分比對收件人或訂購人姓名；status 由呼叫端先檢查是否合法。
+        個資範圍：電話、地址、匯款帳號、內部 id 都不回傳。"""
+        # 明確列出欄位，不用 SELECT *，避免個資被帶到前端
+        sql = """SELECT o.order_id, o.reserved, o.product_name, o.spec, o.qty,
+                        o.subtotal, o.shipment_fee, c.customer_name, o.receiver_name,
+                        o.payment_method, o.order_notes, o.status,
+                        o.ship_date_requested, o.created_at
+                 FROM orders AS o
+                 LEFT JOIN customers AS c ON o.customer_id = c.customer_id
+                 WHERE o.create_by = ?"""
+        params: list[Any] = [create_by]
+        if keyword:
+            # 跳脫 LIKE 的萬用字元，使用者打 % 或 _ 時當成一般文字
+            escaped = (
+                keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
+            sql += (
+                " AND (o.receiver_name LIKE ? ESCAPE '\\'"
+                " OR c.customer_name LIKE ? ESCAPE '\\')"
+            )
+            params += [f"%{escaped}%", f"%{escaped}%"]
+        if status:
+            sql += " AND o.status = ?"
+            params.append(status)
+        sql += " ORDER BY o.created_at DESC, o.id DESC"
+
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            cursor.execute(sql, tuple(params))
+            rows = cursor.fetchall()
+            columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
 
     @staticmethod
-    def order_fuzzy_search(receiver_name)->list[dict]:
-        database=get_db_path()
+    def cancel_order_for_flask(order_id, create_by) -> tuple[bool, str]:
+        """業務取消自己的單：只有 create_by 是自己、且狀態在 CANCELABLE_STATUS 才會成功。"""
+        placeholders = ", ".join("?" * len(CANCELABLE_STATUS))
+        try:
+            database = get_db_path()
+            with sqlite3.connect(database) as con:
+                cursor = con.cursor()
+                # 一條 SQL 同時檢查擁有者與狀態，不會有「先查再改」中間被改掉的問題
+                query = (
+                    "UPDATE orders SET status='order_canceled' "
+                    f"WHERE order_id=? AND create_by=? AND status IN ({placeholders})"
+                )
+                cursor.execute(query, (order_id, create_by, *CANCELABLE_STATUS))
+                if cursor.rowcount == 1:
+                    con.commit()
+                    return True, f"訂單{order_id}已取消"
+
+                cursor.execute(
+                    "SELECT status FROM orders WHERE order_id=? AND create_by=?",
+                    (order_id, create_by),
+                )
+                row = cursor.fetchone()
+            # 別人的單也回「查無訂單」，不透露這張單存在
+            if row is None:
+                return False, f"查無訂單{order_id}"
+            return False, f"訂單{order_id}目前的狀態不能取消"
+        except Exception as e:
+            traceback.print_exc()
+            return False, f"發生錯誤:{e}"
+
+    @staticmethod
+    def read_order_for_xlsx(year: int,customer_info=False) -> pd.DataFrame:
+
+        database = get_db_path()
         with sqlite3.connect(database) as con:
-            cursor=con.cursor()
-            query="SELECT * FROM orders WHERE receiver_name LIKE ?"
-            data =(f"%{receiver_name}%",)
-            cursor.execute(query,data)
+            if customer_info:
+                sql = """SELECT o.*,c.customer_name,c.customer_phone,c.customer_address
+                FROM orders AS o
+                LEFT JOIN  customers AS c
+                        ON o.customer_id = c.customer_id
+                WHERE o.created_at BETWEEN ? AND ?"""
+                
+            else:   
+                sql = "SELECT * FROM orders WHERE created_at BETWEEN ? AND ?"
+            sql_condition = (f"{year}-01-01", f"{year}-12-31") #這樣會漏查12/31當天key的，但問題不大，遇到再修。
+            df = pd.read_sql_query(con=con, sql=sql, params=sql_condition)
+            df["created_at"] = pd.to_datetime(df["created_at"])
+            df["weight"] = df["product_code"].map(MAPPING_WEIGHT) * df["qty"]
+            return df
+
+    @staticmethod
+    def get_sales_df(employee_no: str) -> pd.DataFrame:
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            # cursor=con.cursor()
+            sql = f"SELECT order_id,reserved,product_code,product_name,spec,qty,status,created_at FROM orders WHERE create_by=? AND created_at BETWEEN ? AND ?"
+            sql_condition = (
+                employee_no,
+                str(START_ORDER_TAKING),
+                str(END_ORDER_TAKING),
+            )
+            df = pd.read_sql_query(con=con, sql=sql, params=sql_condition)
+            df["weight"] = df["product_code"].map(MAPPING_WEIGHT) * df["qty"]
+
+        return df
+
+    @staticmethod
+    def get_sales_reservation(df: pd.DataFrame) -> float:
+        df["created_at"] = pd.to_datetime(df["created_at"])
+        condition = (df["created_at"] < HARVEST_DAY_PD) & (
+            df["created_at"] > START_ORDER_TAKING_PD
+        )
+        condition2 = (df["reserved"] == "保留") & (
+            (df["status"] == "not_shipped") | (df["status"] == "not_paid")
+        )
+        df = df.loc[condition2 & condition]
+        # print(df)
+        # 轉成 Python float，numpy.int64 無法直接 jsonify
+        reservation_weight = float(round((df["weight"]).sum(), 2))
+        # print(f"保留值={reservation_weight}")
+        return reservation_weight
+
+    @staticmethod
+    def order_fuzzy_search(receiver_name) -> list[dict]:
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            query = "SELECT * FROM orders WHERE receiver_name LIKE ?"
+            data = (f"%{receiver_name}%",)
+            cursor.execute(query, data)
             customers = cursor.fetchall()
             columns = [col[0] for col in cursor.description]
             customers_data = [dict(zip(columns, row)) for row in customers]
             return customers_data
 
     @staticmethod
-    def insert_order_table(product_code,product_name,spec,qty,customer_id,subtotal,shipment_fee,receiver_name,receiver_phone,receiver_address,create_by,payment_method="Cash",transfer_account=None,order_notes=None)->tuple[bool,str]:
+    def insert_order_table(
+        reserved,
+        product_code,
+        product_name,
+        spec,
+        qty,
+        customer_id,
+        subtotal,
+        shipment_fee,
+        receiver_name,
+        receiver_phone,
+        receiver_address,
+        create_by,
+        payment_method="Cash",
+        transfer_account=None,
+        order_notes=None,
+        ship_date_requested=None,
+    ) -> tuple[bool, str]:
         try:
-            check_result,reciver_phone,_= check_phone(receiver_phone)           
+            check_result, receiver_phone, _ = check_phone(receiver_phone)
             if not check_result:
                 return False, "輸入電話號碼格式不正確"
             if payment_method not in ["Cash", "Transfer"]:
                 return False, "付款只有現金與匯款方式"
-            if payment_method == "Transfer" and transfer_account is None:
-                return False, "轉帳客戶請輸入預計匯款帳戶"
-            if  (not isinstance(qty,int)) or (not isinstance(subtotal,int)) or (not isinstance(shipment_fee,int)):
-                return False,"輸入的數量、貨款、運費並非數字"
-                    
-            column_dict={"product_code":product_code,
-                         "product_name":product_name,
-                         "spec":spec,
-                         "qty":qty,
-                         "customer_id":customer_id,
-                         "subtotal":subtotal,
-                         "shipment_fee":shipment_fee,
-                         "receiver_name":receiver_name,
-                         "receiver_phone":receiver_phone,
-                         "receiver_address":receiver_address,
-                         "payment_method":payment_method,
-                         "transfer_account":transfer_account,
-                         "order_notes":order_notes,
-                         "create_by":create_by}
-            required_column=["product_code","product_name","spec","qty","customer_id","subtotal","shipment_fee","receiver_name","receiver_phone","receiver_address","create_by"]
-            data_dict={k:v for k,v in column_dict.items() if k in required_column or v is not None}
-                    # print(data_dict)
+            # if payment_method == "Transfer" and transfer_account is None:
+            #     return False, "轉帳客戶請輸入預計匯款帳戶"
+            if (
+                (not isinstance(qty, int))
+                or (not isinstance(subtotal, int))
+                or (not isinstance(shipment_fee, int))
+            ):
+                return False, "輸入的數量、貨款、運費並非數字"
+
+            column_dict = {
+                "reserved": reserved,
+                "product_code": product_code,
+                "product_name": product_name,
+                "spec": spec,
+                "qty": qty,
+                "customer_id": customer_id,
+                "subtotal": subtotal,
+                "shipment_fee": shipment_fee,
+                "receiver_name": receiver_name,
+                "receiver_phone": receiver_phone,
+                "receiver_address": receiver_address,
+                "payment_method": payment_method,
+                "transfer_account": transfer_account,
+                "order_notes": order_notes,
+                "ship_date_requested": ship_date_requested,
+                "create_by": create_by,
+            }
+            # print(column_dict)
+            required_column = [
+                "reserved",
+                "product_code",
+                "product_name",
+                "spec",
+                "qty",
+                "customer_id",
+                "subtotal",
+                "shipment_fee",
+                "receiver_name",
+                "receiver_phone",
+                "receiver_address",
+                "create_by",
+            ]
+            data_dict = {
+                k: v
+                for k, v in column_dict.items()
+                if k in required_column or v is not None
+            }
+            # print(data_dict)
             columns = ", ".join(data_dict.keys())
             placeholders = ", ".join("?" * len(data_dict))
-        
+
             sql = f"""INSERT INTO orders ({columns}) VALUES ({placeholders})"""
-            database=get_db_path()
+            # print(sql)
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 con.execute("PRAGMA foreign_keys = ON;")
                 cursor = con.cursor()
+                # print(sql)
+                # print(tuple(data_dict.values()))
                 cursor.execute(sql, tuple(data_dict.values()))
-                con.commit()
-            with sqlite3.connect(database) as con:
-                cursor = con.cursor()
-                query = (
-                        f"SELECT order_id FROM orders WHERE receiver_name=? AND customer_id=?"
-                        )
-                data = (receiver_name,customer_id)
-                cursor.execute(query, data)
+                new_id = (
+                    cursor.lastrowid
+                )  # 用剛寫入那筆的id查，避免同收件人多張單時抓到舊單
+                query = "SELECT order_id FROM orders WHERE id=?"
+                cursor.execute(query, (new_id,))
                 order_id = cursor.fetchone()[0]
+                con.commit()
             return (
                 True,
-                f"客戶編號{customer_id}的訂單建立成功，收件人資料:{receiver_name}；訂單編號為:{order_id}",
+                f"{order_id}",
             )
         except sqlite3.IntegrityError as e:
-            if 'UNIQUE' in str(e):
+            if "UNIQUE" in str(e):
                 # return False, f"已有此客戶名稱{customer_name}"
-                return False,"應該不會出現UNIQUE錯誤才對"
+                return False, "應該不會出現UNIQUE錯誤才對"
             else:
                 traceback.print_exc()
-                return False, f"發生錯誤:{e}"  
+                return False, f"發生錯誤:{e}"
         except Exception as e:
             traceback.print_exc()
             return False, f"發生錯誤:{e}"
-        # 
+        #
 
     @staticmethod
-    def update_order(order_id,column,old_data,new_data):
-        columns=["product_code","product_name","spec","qty","subtotal","shipment_fee","ship_date_requested","receiver_name","receiver_phone","receiver_address","payment_method","transfer_account","order_notes"]
-        pass
-
-    @staticmethod
-    def order_shipping(order_id,shipment_date)->str: #出貨確認
+    def update_order(order_id, column, old_data, new_data):
+        columns = [
+            "product_code",
+            "product_name",
+            "spec",
+            "qty",
+            "subtotal",
+            "shipment_fee",
+            "ship_date_requested",
+            "receiver_name",
+            "receiver_phone",
+            "receiver_address",
+            "payment_method",
+            "transfer_account",
+            "order_notes",
+        ]
+        int_columns = ["qty", "subtotal", "shipment_fee"]
         try:
-            database=get_db_path()
+            # column 會直接拼進 SQL，一定要先擋白名單
+            if column not in columns:
+                return False, f"欄位{column}不可修改"
+
+            # 舊值和新值都要整理成 DB 裡的格式，舊值比對才會對得上
+            if column == "receiver_phone":
+                ok, old_data, _ = check_phone(old_data)
+                if not ok:
+                    return False, "輸入的舊電話號碼格式不正確"
+                ok, new_data, _ = check_phone(new_data)
+                if not ok:
+                    return False, "輸入的新電話號碼格式不正確"
+            elif column == "payment_method":
+                if new_data not in ["Cash", "Transfer"]:
+                    return False, "付款只有現金與匯款方式"
+            elif column in int_columns:
+                try:
+                    old_data = int(old_data)
+                    new_data = int(new_data)
+                except (TypeError, ValueError):
+                    return False, "輸入的數量、貨款、運費並非數字"
+
+            if old_data == new_data:
+                return False, "新值與舊值相同，不需修改"
+
+            database = get_db_path()
             with sqlite3.connect(database) as con:
-                cursor=con.cursor()
-                query="UPDATE orders SET status=? , shipment_date=? WHERE order_id=?"
-                data=("not_paid",shipment_date,order_id)
-                cursor.execute(query,data)
+                cursor = con.cursor()
+                # 用 IS 而不是 =，舊值是 NULL（例如沒填備註）時才比對得到
+                query = (
+                    f"UPDATE orders SET {column}=? WHERE order_id=? AND {column} IS ?"
+                )
+                cursor.execute(query, (new_data, order_id, old_data))
+                if cursor.rowcount == 1:
+                    con.commit()
+                    return (
+                        True,
+                        f"已將{order_id}的欄位{column}從{old_data}修改為{new_data}",
+                    )
+
+                # 沒有更新到：分辨是找不到訂單，還是舊值不符
+                cursor.execute(
+                    f"SELECT {column} FROM orders WHERE order_id=?", (order_id,)
+                )
+                row = cursor.fetchone()
+            if row is None:
+                return False, f"找不到訂單編號為{order_id}的資料"
+            return (
+                False,
+                f"舊值不符，未修改。{order_id}的欄位{column}目前是{row[0]}",
+            )
+        except sqlite3.IntegrityError as e:
+            traceback.print_exc()
+            return False, f"新值不符合資料表限制:{e}"
+        except Exception as e:
+            traceback.print_exc()
+            return False, f"發生錯誤:{e}"
+
+    @staticmethod
+    def order_shipping(order_id, shipment_date) -> str:  # 出貨確認
+        try:
+            database = get_db_path()
+            with sqlite3.connect(database) as con:
+                cursor = con.cursor()
+                query = "UPDATE orders SET status=? , shipment_date=? WHERE order_id=?"
+                data = ("not_paid", shipment_date, order_id)
+                cursor.execute(query, data)
                 con.commit()
             return f"{order_id}訂單狀態已更新至<等待收款中>"
         except Exception as e:
@@ -422,17 +678,25 @@ class OrderTableCRUD:
             return f"發生未預期錯誤{e}"
 
     @staticmethod
-    def order_complete(order_id,payment_reciving_date,payment_method="Cash",transfer_account=None)->str: #收款確認
+    def order_complete(
+        order_id, payment_reciving_date, payment_method="Cash", transfer_account=None
+    ) -> str:  # 收款確認
         # payment_methods=[{"mayment_method":"Cash","transfer_account":None},{"mayment_method":"Transfer","transfer_account":transfer_account}]
-        if payment_method not in ["Cash","Transfer"]:
+        if payment_method not in ["Cash", "Transfer"]:
             return "收款方式只有現金與轉帳"
         try:
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
-                cursor=con.cursor()
-                query="UPDATE orders SET status=? , payment_reciving_date=? ,payment_method=? , transfer_account=? WHERE order_id=?"
-                data=("complete",payment_reciving_date,payment_method,transfer_account,order_id)
-                cursor.execute(query,data)
+                cursor = con.cursor()
+                query = "UPDATE orders SET status=? , payment_reciving_date=? ,payment_method=? , transfer_account=? WHERE order_id=?"
+                data = (
+                    "complete",
+                    payment_reciving_date,
+                    payment_method,
+                    transfer_account,
+                    order_id,
+                )
+                cursor.execute(query, data)
                 con.commit()
             return f"{order_id}訂單狀態已更新至<收款確認，結案>"
         except Exception as e:
@@ -440,35 +704,34 @@ class OrderTableCRUD:
             return f"發生未預期的錯誤{e}"
 
     @staticmethod
-    def order_cancel(order_id)->str:
+    def order_cancel(order_id) -> str:
         try:
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
-                cursor=con.cursor()
-                query="UPDATE orders SET status=? WHERE order_id=?"
-                data=("order_canceled",order_id)
-                cursor.execute(query,data)
+                cursor = con.cursor()
+                query = "UPDATE orders SET status=? WHERE order_id=?"
+                data = ("order_canceled", order_id)
+                cursor.execute(query, data)
                 con.commit()
             return f"{order_id}訂單狀態已更新至<訂單取消>"
         except Exception as e:
             traceback.print_exc()
             return f"發生未預期的錯誤{e}"
 
-
     @staticmethod
-    def delete_order(id)->str:
-        bool,internal_id,id_type=check_internal_id_format(id)
+    def delete_order(id) -> str:
+        bool, internal_id, id_type = check_internal_id_format(id)
         print(id_type)
         if bool and id_type == "order_id":
             query = "DELETE FROM orders WHERE order_id=?"
-            data=(internal_id,)    
+            data = (internal_id,)
         elif not bool and internal_id is None:
             query = "DELETE FROM orders WHERE id=?"
-            data=(id,)
+            data = (id,)
         else:
             return "輸入id不合法，未進行刪除"
         try:
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 cursor.execute(query, data)
@@ -477,3 +740,165 @@ class OrderTableCRUD:
         except Exception as e:
             traceback.print_exc()
             return f"發生未預期的錯誤{e}"
+
+    @staticmethod
+    def check_new_order_status(
+        product_code: str, old_oder: float, new_oder: int, reservation_amount: float
+    ) -> str:
+        """ "input the product code and weight(new_oder is qty) ,return "保留"or"排單"or"退回" """
+        need_reserve_product = {
+            "pomelo-G-10": 10,
+            "pomelo-G-15": 15,
+            "pomelo-G-20": 20,
+            "pomelo-G-1": 1,
+        }
+
+        if product_code in need_reserve_product.keys():
+            new_weight = new_oder * need_reserve_product[product_code]
+            # print(f"本次新增重量:{new_oder}")
+            if old_oder + new_weight <= reservation_amount:
+                # print("O+N<=R")
+                reservation_result = "保留"
+            else:
+                # print("O+N>R")
+                if old_oder + 5 >= reservation_amount: #剩餘額度低於5台斤自動算成排單
+                    reservation_result = "排單"
+                else:
+                    reservation_result = "退回"
+
+        else:
+            # print("非保留項目，請直接排單")
+            reservation_result = "排單"
+        return reservation_result
+
+    @staticmethod
+    def get_order_sequesnce(df: pd.DataFrame, order_id: str) -> tuple[str, int, float]:
+        if len(df) == 0:
+            return "空資料表", 1, 0
+        if order_id not in df["order_id"].tolist():
+            raise ValueError("訂單資料表無此訂單")
+        product_name = df.loc[df["order_id"] == order_id, "product_name"].iloc[0]
+        df["created_at"] = pd.to_datetime(df["created_at"])
+        create_time = df.loc[df["order_id"] == order_id, "created_at"].iloc[0]
+        reservation = df.loc[df["order_id"] == order_id, "reserved"].iloc[0]
+        create_by = df.loc[df["order_id"] == order_id, "create_by"].iloc[0]
+        # print(f"訂單建立者{create_by}，訂單建立時間{create_time}，訂單品項:{product_name}，訂單保留or排單:{reservation}")
+
+        # 已取消的單不佔順位、不算待出貨重量（查詢的這張單本身除外）
+        df = df.loc[(df["status"] != "order_canceled") | (df["order_id"] == order_id)]
+
+        if reservation == "保留":
+            df = df.loc[
+                (df["reserved"] == "保留")
+                & (df["create_by"] == create_by)
+                & (df["product_name"] == product_name)
+                & (df["created_at"] <= create_time)
+            ]
+        else:
+            df = df.loc[
+                (df["reserved"] == "排單")
+                & (df["product_name"] == product_name)
+                & (df["created_at"] <= create_time)
+            ]
+
+        df = df.sort_values(["created_at"], ascending=True).reset_index(drop=True)
+        sequence_of_order = df.index[df["order_id"] == order_id][0] + 1
+        if len(df) <= 1:
+            reservated_weight = 0
+        else:
+            df = df.loc[df["created_at"] < create_time]
+            reservated_weight = round((df["weight"]).sum(), 2)
+        return reservation, sequence_of_order, reservated_weight
+
+
+def calculate_reserved_amount(employee_no: str) -> int:
+    total_reserved_production = math.ceil(LAST_PRODUCTION * 0.75 / 10) * 10
+    # print(total_reserved_production)
+    personal_reversed_production = (
+        RESERVE_RATIO[employee_no] * total_reserved_production
+    )
+    personal_reversed_production = math.floor(personal_reversed_production / 10) * 10
+    return personal_reversed_production
+
+
+def order_taking_date_check(today: datetime) -> bool:
+    # today=datetime.date.today()
+    if today < START_ORDER_TAKING:
+        return False
+    else:
+        return True
+
+
+def order_reserving_date_check(today: date) -> bool:
+    # today=datetime.date.today()
+    if today < HARVEST_DAY and today > START_ORDER_TAKING:
+        return True
+    else:
+        return False
+
+
+def check_oder_data(order_data) -> tuple[bool, str]:
+    if not isinstance(order_data, dict):
+        return False, "dataset not a dict"
+    required_items = [
+        "receiver_name",
+        "receiver_phone",
+        "receiver_address",
+        "customer_name",
+        "customer_phone",
+        "customer_address",
+        "product_code",
+        "qty",
+        "subtotal",
+        "shipment_fee",
+        "predict_payment_method",
+    ]
+    problem_info = []
+    # print("開始檢查欄位為空")
+    for require_item in required_items:
+        # print(order_data[require_item])
+        if order_data[require_item] is None or order_data[require_item] == "":
+            problem_info.append(require_item)
+            # print(f"這個欄位真的為空:{order_data[require_item]}")
+    phone_items = ["receiver_phone", "customer_phone"]
+    # print("開始檢查電話號碼")
+    for phone in phone_items:
+        # print(order_data[phone])
+        check_bool, _, _ = check_phone(order_data[phone])
+        if not check_bool:
+            problem_info.append(phone)
+            # print(f"這個電話號碼真的不對:{order_data[phone]}")
+    number_items = ["qty", "subtotal", "shipment_fee"]
+    # print("開始檢查欄位是否為數字")
+    for number in number_items:
+        # print(order_data[number])
+        if not isinstance(order_data[number], int):
+            problem_info.append(number)
+            # print(f"這個資料真的不是數字:{order_data[number]}")
+    str_items = [
+        "receiver_name",
+        "receiver_phone",
+        "receiver_address",
+        "customer_name",
+        "customer_phone",
+        "customer_address",
+        "product_code",
+        "predict_payment_method",
+    ]
+    # print("開始檢查欄位是否為字串")
+    for str_item in str_items:
+        # print(order_data[str_item])
+        if not isinstance(order_data[str_item], str):
+            problem_info.append(str_item)
+            # print(f"這個資料真的不是字串:{order_data[str_item]}")
+    # 指定出貨日是選填：沒指定時前端送 null；有填就必須是 YYYY-MM-DD
+    ship_date = order_data.get("ship_date")
+    if ship_date is not None:
+        try:
+            datetime.strptime(ship_date, "%Y-%m-%d")
+        except (TypeError, ValueError):
+            problem_info.append("ship_date")
+    if len(problem_info) == 0:
+        return True, "no problems"
+    else:
+        return False, f"problem_items{problem_info}"

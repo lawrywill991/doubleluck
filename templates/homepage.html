@@ -298,6 +298,13 @@
       position: relative;
     }
 
+    /* modal 內的結果清單：拿掉圓點，配合置中排版 */
+    #modalDisplay {
+      list-style: none;
+      padding: 0;
+      line-height: 1.8;
+    }
+
     .reset-button-group {
       display: flex;
       justify-content: flex-end;
@@ -323,7 +330,9 @@
     </div>
 
     <div class="section" id="orders">
-      <a href="/order/create" class="btn-link">建立訂單</a>
+      <a href="/order/new-order" class="btn-link">建立訂單</a>
+      <button id = "readPersonalReservation" class = "btn-link">查詢保留額</button>
+      <a href="/order/my-orders" class="btn-link">查詢我的訂單</a>
     </div>
 
     <!-- 施工區 -->
@@ -414,6 +423,56 @@
           modalInfo.textContent = `你的工時總計為${recordResult}小時`;
         })
         .catch((error) => { console.error("查詢工時時發生錯誤", error) })
+      modal.classList.add('show');
+    })
+
+    //查詢保留額的功能
+    const reservation = document.getElementById("readPersonalReservation")
+    //重量最多顯示到小數第2位，整數就不顯示小數點
+    function formatWeight(weight) {
+      return String(Math.round(Number(weight) * 100) / 100);
+    }
+    reservation.addEventListener("click", async (event) => {
+      event.preventDefault();
+      reservation.disabled = true;
+      modalDisplay.innerHTML = "";
+      modalInfo.innerHTML = "";
+      try {
+        const response = await fetch("/order/get-myreservation", { method: "GET" });
+        //session 過期時後端會導回登入頁，這時候 response 不是 JSON
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+        const data = await response.json();
+        if (!response.ok || data.status !== true) {
+          throw new Error(data.message || "查詢失敗");
+        }
+        const remaining = data.quota - data.usage;
+        modalTitle.textContent = "保留額查詢結果";
+        modalInfo.textContent = data.in_reserving_period
+          ? "目前在保留期內，以下為您的保留額使用狀況："
+          : "保留期已結束，目前新訂單一律排單。以下為保留期的使用紀錄：";
+        const rows = [
+          `保留額度：${formatWeight(data.quota)} 台斤`,
+          `已使用：${formatWeight(data.usage)} 台斤`,
+          `剩餘：${formatWeight(remaining)} 台斤`,
+        ];
+        rows.forEach((text) => {
+          const li = document.createElement("li");
+          li.textContent = text;
+          modalDisplay.appendChild(li);
+        });
+      }
+      catch (error) {
+        console.error("查詢保留額時發生錯誤", error);
+        modalTitle.textContent = "查詢失敗";
+        modalInfo.textContent = "查詢保留額時發生錯誤，請稍後再試。";
+      }
+      finally {
+        reservation.disabled = false;
+      }
+      //等資料回來才打開 modal，不會先閃出「Modal 標題」
       modal.classList.add('show');
     })
 
