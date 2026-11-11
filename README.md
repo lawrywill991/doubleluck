@@ -53,7 +53,6 @@ Additional features and enhancements will be added as the project evolves.
 
 # Screenshots
 ![登入畫面](show%20up%20photos/IMG_6668.PNG)
-![忘記密碼的暫時性登入](show%20up%20photos/IMG_6669.PNG)
 ![主功能頁](show%20up%20photos/IMG_6670.PNG)
 ![主功能頁-查詢自己已記錄的工時](show%20up%20photos/IMG_6671.PNG)
 ![暫時性登入後才可重設密碼](show%20up%20photos/IMG_6677.PNG)
