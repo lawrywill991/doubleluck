@@ -241,3 +241,23 @@ def default_date_range(usage_sys) -> tuple[date, date, date]:
             start_date = date(year, 10, 1)
         end_date = date(year + 1, 9, 30)
     return start_date, today, end_date
+
+def get_device(user_agent):
+
+    ua = user_agent.lower()
+
+    if re.search(r'iphone|ipod', ua):
+        return 'mobile'
+
+    elif 'ipad' in ua:
+        return 'tablet'
+
+    elif 'android' in ua:
+        if 'mobile' in ua:
+            return 'mobile'
+        return 'tablet'
+
+    elif re.search(r'windows|macintosh|linux', ua):
+        return 'desktop'
+
+    return 'unknown'

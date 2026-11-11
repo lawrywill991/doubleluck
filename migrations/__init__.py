@@ -1,2 +1,3 @@
 from .add_ordertable import create_order_table,create_order_trigger
 from .add_weight_column import alter_weight_column
+from .add_login_device import add_login_succes_column,add_login_fail_table

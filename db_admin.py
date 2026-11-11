@@ -24,7 +24,7 @@ from SQLmaintain import (
     order_reserving_date_check,
     check_oder_data,default_date_range
 )
-from migrations import create_order_table, create_order_trigger, alter_weight_column
+from migrations import (create_order_table, create_order_trigger, alter_weight_column,add_login_succes_column,add_login_fail_table)
 from config import get_file_export_path
 
 from datetime import date, datetime
@@ -53,11 +53,12 @@ def main():
                 "products",
                 "customers",
                 "validation",
-                "orders",
+                "orders"
+                "login_fail",
             ]
             if set(tables) != set(necessary_tables):
                 table_choice = input(
-                    "目前還少table，請選擇建立：A.使用者資料表 B.工作時間資料表 c.員工資料表 D. E.產品規格售價表 F:顧客資料表 G:訂單資料表 V:驗證資料, \n"
+                    "目前還少table，請選擇建立：A.使用者資料表 B.工作時間資料表 c.員工資料表 D.\n E.產品規格售價表 F:顧客資料表 G:訂單資料表 V:驗證資料, \n H:登入失敗表 \n"
                 ).upper()
                 if table_choice == "A":
                     UserTableCRUD.create_user_table()
@@ -93,6 +94,9 @@ def main():
                 elif table_choice == "G":
                     create_order_table()
                     print("訂單資料表已創建成功!")
+                elif table_choice == "H":
+                    add_login_fail_table()
+                    print("login_fail表格已新增")
                 else:
                     print("暫無預設表格可輸入，請聯繫程式作者")
                     break
@@ -137,6 +141,9 @@ def main():
                 # print(trigger_removed_result)
             elif (table == "products") & (table_deal == "D"):
                 alter_result = alter_weight_column()
+                print(alter_result)
+            elif (table == "user") & (table_deal == "D"):
+                alter_result = add_login_succes_column()
                 print(alter_result)
             else:
                 print("查無表格名稱或，請重新操作")
@@ -259,6 +266,10 @@ def main():
             for result in results:
                 print(result)
             break
+        elif function_choice == "1" and table_choice.upper() == "H":
+            df= UserTableCRUD.read_login_fail()
+            print(df)
+            pass   
 
         # 加速尋找: 以上為READ區；以下為INSERT區------------------
 

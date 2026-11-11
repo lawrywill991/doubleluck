@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import werkzeug.security as secur
 import bcrypt
+import pandas as pd
 
 from .SQLutils import DataTransfer
 from config import get_db_path
@@ -179,9 +180,7 @@ class EmployeeTableCRUD:
                 database = get_db_path()
                 with sqlite3.connect(database) as con:
                     cursor = con.cursor()
-                    query = (
-                        f"UPDATE employee SET {column}=? WHERE employee_no=?"
-                    )
+                    query = f"UPDATE employee SET {column}=? WHERE employee_no=?"
                     data = (new_data, employee_no)
                     cursor.execute(query, data)
                     con.commit()
@@ -322,7 +321,9 @@ class UserTableCRUD:
             query = "UPDATE user SET last_login=?,fail_login_times=? WHERE account=?"
             data = (now, 0, account)
         elif 1 < try_times < 6:
-            query = "UPDATE user SET fail_login_times=fail_login_times + 1 WHERE account=?"
+            query = (
+                "UPDATE user SET fail_login_times=fail_login_times + 1 WHERE account=?"
+            )
             data = (account,)
         else:
             query = "UPDATE user SET last_fail_login=?,fail_login_times=fail_login_times + 1 WHERE account=?"
@@ -343,35 +344,26 @@ class UserTableCRUD:
         elif last_fail_login is None:
             return False
         else:
-            last_fail_login = datetime.strptime(
-                last_fail_login, "%Y-%m-%d %H:%M:%S"
-            )
+            last_fail_login = datetime.strptime(last_fail_login, "%Y-%m-%d %H:%M:%S")
             now = datetime.now()
             deltatime = now - last_fail_login
             if deltatime > timedelta(minutes=30):
                 return False
             else:
-                return (
-                    deltatime < timedelta(minutes=30) and fail_login_times >= 5
-                )
+                return deltatime < timedelta(minutes=30) and fail_login_times >= 5
 
     @staticmethod
     def login_check(account, password):
         user_list = UserTableCRUD.read_user_table(account=account)
         if user_list == [] or len(user_list) > 1:
-            return False, {
-                "user_data": None,
-                "falure_message": "no users_account",
-            }
+            return False, {"user_data": None, "falure_message": "no users_account"}
         user = user_list[0]
         try_times = int(user["fail_login_times"])
         is_locked = UserTableCRUD.user_locked(user)
         if not is_locked:
             password_hash = user["password"]
             if secur.check_password_hash(password_hash, password):
-                UserTableCRUD.update_login_record(
-                    True, account, try_times=try_times
-                )
+                UserTableCRUD.update_login_record(True, account, try_times=try_times)
                 min_user_info = DataTransfer(user_list).remove_information(
                     information_keys=(
                         "id",
@@ -382,33 +374,18 @@ class UserTableCRUD:
                     )
                 )
                 # print(min_user_info)
-                return True, {
-                    "user_data": min_user_info[0],
-                    "falure_message": None,
-                }
+                return True, {"user_data": min_user_info[0], "falure_message": None}
             else:
                 try_times += 1
-                UserTableCRUD.update_login_record(
-                    False, account, try_times=try_times
-                )
-                return False, {
-                    "user_data": None,
-                    "falure_message": "login faliure",
-                }
+                UserTableCRUD.update_login_record(False, account, try_times=try_times)
+                return False, {"user_data": None, "falure_message": "login faliure"}
         else:
-            return False, {
-                "user_data": None,
-                "falure_message": "Too often login",
-            }
+            return False, {"user_data": None, "falure_message": "Too often login"}
 
     @staticmethod
     def validation_data_build(relationship, author_name):
-        relationship = bcrypt.hashpw(
-            relationship.encode("utf-8"), bcrypt.gensalt()
-        )
-        author_name = bcrypt.hashpw(
-            author_name.encode("utf-8"), bcrypt.gensalt()
-        )
+        relationship = bcrypt.hashpw(relationship.encode("utf-8"), bcrypt.gensalt())
+        author_name = bcrypt.hashpw(author_name.encode("utf-8"), bcrypt.gensalt())
         database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
@@ -482,6 +459,25 @@ class UserTableCRUD:
                 return False
         else:
             return False
+
+    @staticmethod
+    def insert_login_fail(account, reason, divice, ip_address):
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = con.cursor()
+            query = "INSERT INTO login_fail (account,fail_reason,device,ip_address)VALUES(?,?,?,?)"
+            data = (account, reason, divice, ip_address)
+            cursor.execute(query, data)
+            con.commit()
+
+    @staticmethod
+    def read_login_fail():
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            query = "SELECT * FROM login_fail"
+            # data=(account,reason,divice,ip_address)
+            df = pd.read_sql_query(query, con)
+        return df
 
 
 class RoleTableCRUD:
