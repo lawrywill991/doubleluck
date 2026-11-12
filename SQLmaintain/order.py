@@ -413,7 +413,7 @@ class OrderTableCRUD:
             return False, f"發生錯誤:{e}"
 
     @staticmethod
-    def read_order_for_xlsx(year: int,customer_info=False) -> pd.DataFrame:
+    def read_order_for_xlsx(year: int, customer_info=False) -> pd.DataFrame:
 
         database = get_db_path()
         with sqlite3.connect(database) as con:
@@ -423,10 +423,13 @@ class OrderTableCRUD:
                 LEFT JOIN  customers AS c
                         ON o.customer_id = c.customer_id
                 WHERE o.created_at BETWEEN ? AND ?"""
-                
-            else:   
+
+            else:
                 sql = "SELECT * FROM orders WHERE created_at BETWEEN ? AND ?"
-            sql_condition = (f"{year}-01-01", f"{year}-12-31") #這樣會漏查12/31當天key的，但問題不大，遇到再修。
+            sql_condition = (
+                f"{year}-01-01",
+                f"{year}-12-31",
+            )  # 這樣會漏查12/31當天key的，但問題不大，遇到再修。
             df = pd.read_sql_query(con=con, sql=sql, params=sql_condition)
             df["created_at"] = pd.to_datetime(df["created_at"])
             df["weight"] = df["product_code"].map(MAPPING_WEIGHT) * df["qty"]
@@ -761,7 +764,7 @@ class OrderTableCRUD:
                 reservation_result = "保留"
             else:
                 # print("O+N>R")
-                if old_oder + 5 >= reservation_amount: #剩餘額度低於5台斤自動算成排單
+                if old_oder + 5 >= reservation_amount:  # 剩餘額度低於5台斤自動算成排單
                     reservation_result = "排單"
                 else:
                     reservation_result = "退回"
