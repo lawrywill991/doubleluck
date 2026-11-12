@@ -36,7 +36,7 @@ doubleluck.config["PERMANENT_SESSION_LIFETIME"] = get_session_time()
 def login():
     if flask.request.method == "POST":
         login_user = flask.request.get_json()
-        user_agent = flask.request.headers.get('User-Agent')
+        user_agent = flask.request.headers.get("User-Agent")
         device = get_device(user_agent)
         ip_address = flask.request.remote_addr
         account = login_user.get("account")
@@ -50,10 +50,12 @@ def login():
             flask.session["employee_id"] = user_data["employee_no"]
             flask.session["account"] = user_data["account"]
             flask.session["permisson"] = True  # 之後要來這裡改權限傳遞
-            UserTableCRUD.update_user(user_data["employee_no"],"device",device)
+            UserTableCRUD.update_user(user_data["employee_no"], "device", device)
             return flask.jsonify({"status": access_bool, "message": "welcome,"})
         else:
-            UserTableCRUD.insert_login_fail(account,message["falure_message"],device,ip_address)
+            UserTableCRUD.insert_login_fail(
+                account, message["falure_message"], device, ip_address
+            )
             return flask.jsonify(
                 {"status": access_bool, "message": f"{message["falure_message"]}"}
             )
@@ -73,7 +75,7 @@ def logout():
 def forgotpassword():
     if flask.request.method == "POST":
         user_submit_info = flask.request.get_json()
-        user_agent = flask.request.headers.get('User-Agent')
+        user_agent = flask.request.headers.get("User-Agent")
         device = get_device(user_agent)
         ip_address = flask.request.remote_addr
         account = user_submit_info.get("account")
@@ -91,10 +93,12 @@ def forgotpassword():
             flask.session["username"] = user_data["user_name"]
             flask.session["account"] = user_data["account"]
             flask.session["temporary_login"] = True
-            UserTableCRUD.update_user(user_data["employee_no"],"device",device)
+            UserTableCRUD.update_user(user_data["employee_no"], "device", device)
             return flask.jsonify({"status": True})
         else:
-            UserTableCRUD.insert_login_fail(account,"忘記密碼身分驗證失敗",device,ip_address)
+            UserTableCRUD.insert_login_fail(
+                account, "忘記密碼身分驗證失敗", device, ip_address
+            )
             return flask.jsonify({"status": False})
     else:
         return flask.render_template("login.html")
@@ -105,7 +109,7 @@ def reset_password():
     if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
     reset_password_info = flask.request.get_json()
-    user_agent = flask.request.headers.get('User-Agent')
+    user_agent = flask.request.headers.get("User-Agent")
     device = get_device(user_agent)
     ip_address = flask.request.remote_addr
     new_password = reset_password_info.get("new_password")
@@ -127,7 +131,7 @@ def reset_password():
             result = UserTableCRUD.update_user(
                 employee_no, "password", confirm_password
             )
-            UserTableCRUD.update_user(employee_no,"device",device)
+            UserTableCRUD.update_user(employee_no, "device", device)
             print(f"密碼重設結果:{result}")
             return flask.jsonify({"status": True})
         else:
