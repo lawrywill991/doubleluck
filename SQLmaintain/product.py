@@ -8,7 +8,7 @@ class ProductsTableCRUD:
     @staticmethod
     def create_product_table(database=None):
         if database is None:
-            database=get_db_path()
+            database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = """CREATE TABLE products (
@@ -24,11 +24,9 @@ class ProductsTableCRUD:
             con.commit()
 
     @staticmethod
-    def insert_product(
-        product_name, spec, price, product_code, create_by=None
-    ):
+    def insert_product(product_name, spec, price, product_code, create_by=None):
         try:
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
                 cursor = con.cursor()
                 if create_by is not None:
@@ -50,15 +48,13 @@ class ProductsTableCRUD:
 
     @staticmethod
     def read_products_table(product_name=None, spec=None):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             ## 其實更好是用動態寫法 conditions=[] data=[] + append() 然後 query += " WHERE " + " OR ".join(where) 但超出我現階段的能力。
             ## 要改就可以參考product.py裡面的read_order_table()寫法
             if product_name != None and spec != None:
-                query = (
-                    "SELECT * FROM products WHERE product_name = ? and spec =?"
-                )
+                query = "SELECT * FROM products WHERE product_name = ? and spec =?"
                 data = (product_name, spec)
                 cursor.execute(query, data)
             elif product_name != None:
@@ -80,36 +76,36 @@ class ProductsTableCRUD:
                 products_data = [dict(zip(columns, row)) for row in products]
                 return True, products_data
 
-    @staticmethod #第一個包屎山代碼的經驗!(不想改read_products_table的架構了)
+    @staticmethod  # 第一個包屎山代碼的經驗!(不想改read_products_table的架構了)
     def read_product_info(product_code) -> dict | None:
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
-            cursor=con.cursor()
-            query="SELECT * FROM products WHERE product_code=?"
-            data=(product_code,)
-            cursor.execute(query,data)
-            product=cursor.fetchone()
+            cursor = con.cursor()
+            query = "SELECT * FROM products WHERE product_code=?"
+            data = (product_code,)
+            cursor.execute(query, data)
+            product = cursor.fetchone()
             if not product:
                 return None
             else:
                 columns = [col[0] for col in cursor.description]
-                products_data = dict(zip(columns,product))
+                products_data = dict(zip(columns, product))
                 return products_data
 
     @staticmethod
     def read_products_for_flask(product_class="pomelo"):
-        product_classes=["pomelo","freight"]
+        product_classes = ["pomelo", "freight"]
         if product_class not in product_classes:
             raise ValueError("目前產品只有文旦、運費")
         else:
-            database=get_db_path()
+            database = get_db_path()
             with sqlite3.connect(database) as con:
 
-                cursor=con.cursor()
+                cursor = con.cursor()
                 query = "SELECT * FROM products WHERE product_code LIKE ?"
-                data=(product_class+"%",)
-                cursor.execute(query,data)
-                products=cursor.fetchall()
+                data = (product_class + "%",)
+                cursor.execute(query, data)
+                products = cursor.fetchall()
                 if products is None:
                     raise ValueError(f"目前資料表沒有{product_class}類產品!")
                 else:
@@ -120,7 +116,7 @@ class ProductsTableCRUD:
 
     @staticmethod
     def delete_product(id):
-        database=get_db_path()
+        database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
             query = "DELETE FROM products WHERE id=?"
