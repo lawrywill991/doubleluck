@@ -243,7 +243,7 @@ def default_date_range(usage_sys) -> tuple[date, date, date]:
     return start_date, today, end_date
 
 
-def get_device(user_agent):
+def get_device(user_agent: str) -> str:
 
     ua = user_agent.lower()
 

@@ -37,6 +37,8 @@ def login():
     if flask.request.method == "POST":
         login_user = flask.request.get_json()
         user_agent = flask.request.headers.get("User-Agent")
+        if not isinstance(user_agent, str):
+            return flask.jsonify({"status": False, "message": "you ar not welcome"})
         device = get_device(user_agent)
         ip_address = flask.request.remote_addr
         account = login_user.get("account")
@@ -76,6 +78,8 @@ def forgotpassword():
     if flask.request.method == "POST":
         user_submit_info = flask.request.get_json()
         user_agent = flask.request.headers.get("User-Agent")
+        if not isinstance(user_agent, str):
+            return flask.jsonify({"status": False})
         device = get_device(user_agent)
         ip_address = flask.request.remote_addr
         account = user_submit_info.get("account")
@@ -110,6 +114,8 @@ def reset_password():
         return flask.redirect(flask.url_for("login"))
     reset_password_info = flask.request.get_json()
     user_agent = flask.request.headers.get("User-Agent")
+    if not isinstance(user_agent, str):
+        return flask.jsonify({"status": False})
     device = get_device(user_agent)
     ip_address = flask.request.remote_addr
     new_password = reset_password_info.get("new_password")
