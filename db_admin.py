@@ -1,5 +1,6 @@
 import sys
 import os
+
 # print(sys.path)
 from SQLmaintain import (
     EmployeeTableCRUD,
@@ -22,9 +23,16 @@ from SQLmaintain import (
 from SQLmaintain import (
     order_taking_date_check,
     order_reserving_date_check,
-    check_oder_data,default_date_range
+    check_oder_data,
+    default_date_range,
 )
-from migrations import (create_order_table, create_order_trigger, alter_weight_column,add_login_succes_column,add_login_fail_table)
+from migrations import (
+    create_order_table,
+    create_order_trigger,
+    alter_weight_column,
+    add_login_succes_column,
+    add_login_fail_table,
+)
 from config import get_file_export_path
 
 from datetime import date, datetime
@@ -53,7 +61,7 @@ def main():
                 "products",
                 "customers",
                 "validation",
-                "orders"
+                "orders",
                 "login_fail",
             ]
             if set(tables) != set(necessary_tables):
@@ -267,9 +275,9 @@ def main():
                 print(result)
             break
         elif function_choice == "1" and table_choice.upper() == "H":
-            df= UserTableCRUD.read_login_fail()
+            df = UserTableCRUD.read_login_fail()
             print(df)
-            pass   
+            pass
 
         # 加速尋找: 以上為READ區；以下為INSERT區------------------
 
@@ -653,16 +661,16 @@ def main():
                 print("訂單表格已無紀錄")
         elif function_choice == "XLSX" and table_choice.upper() == "G":
             print("匯出今年完整訂單表")
-            start_date,today,end_date=default_date_range("orders")
-            year=today.year
-            base_location=get_file_export_path()
-            df=OrderTableCRUD.read_order_for_xlsx(year,customer_info=True)
+            start_date, today, end_date = default_date_range("orders")
+            year = today.year
+            base_location = get_file_export_path()
+            df = OrderTableCRUD.read_order_for_xlsx(year, customer_info=True)
             # print(df)
             filename = input("請輸入存檔檔名 ENTER=今天 \n") or str(today)
             filename += ".xlsx"
-            file_path = os.path.join(base_location,filename)
+            file_path = os.path.join(base_location, filename)
             # print(file_path)
-            df.to_excel(file_path,engine="openpyxl",index=False)
+            df.to_excel(file_path, engine="openpyxl", index=False)
             print(f"今年完整訂單已匯出，檔案位址為:{file_path}")
 
             pass
@@ -692,7 +700,7 @@ def main():
 
         elif function_choice == "T" and table_choice.upper() == "G":
             # employee_no = "SHR08"
-            
+
             employee_no = input("請輸入查詢的員工編號SHR \n")
             test_result = OrderTableCRUD.get_sales_df(employee_no)
             print(test_result)
