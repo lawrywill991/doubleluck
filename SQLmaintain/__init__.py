@@ -5,7 +5,12 @@ from .SQLutils import (
     generated_randompassword,
     check_internal_id_format,
 )
-from .SQLutils import check_datetime_formuler, date_compliarty, default_date_range,get_device
+from .SQLutils import (
+    check_datetime_formuler,
+    date_compliarty,
+    default_date_range,
+    get_device,
+)
 from .employee import UserTableCRUD, EmployeeTableCRUD, RoleTableCRUD
 from .product import ProductsTableCRUD
 from .workduration import WorkingTimeTableCRUD
