@@ -451,6 +451,23 @@ def get_personal_reservation():
         )
 
 
+@doubleluck.route("/order/calculate-sequence", methods=["POST"])
+def caculcate_sequence():
+    if flask.session.get("login") != True:
+        return flask.redirect(flask.url_for("login"))
+    else:
+        request_data = flask.request.get_json(silent=True) or {}
+        order_id = str(request_data.get("order_id", "")).strip()
+        return flask.jsonify(
+            {
+                "status": True,
+                "reserved_sequence": "保1",
+                "before_reserved": 0,
+                "calculated_time": "2026-10-02 17:18:20",
+            }
+        )
+
+
 if __name__ == "__main__":
     doubleluck.run(debug=True, host="localhost", port=5000)
     # doubleluck.run(debug=True, host="0.0.0.0", port=5000)
