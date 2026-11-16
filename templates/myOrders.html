@@ -198,6 +198,29 @@
             word-break: break-all;
         }
 
+        .sequence-btn {
+            background: none;
+            color: #0d6efd;
+            padding: 0;
+            width: auto;
+            border: none;
+            border-bottom: 1px dashed #0d6efd;
+            border-radius: 0;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .sequence-btn:hover {
+            background: none;
+            color: #0a58ca;
+        }
+
+        .sequence-btn:disabled {
+            color: #333;
+            border-bottom: none;
+            cursor: default;
+        }
+
         .cancel-order-btn {
             margin-top: 10px;
             background-color: #dc3545;
@@ -426,6 +449,45 @@
             return Number(order.subtotal || 0) + Number(order.shipment_fee || 0);
         }
 
+        // 「保留/排單」：可點擊，點了才向後端計算順位，之後不能再點
+        function createSequenceLine(order) {
+            const line = createLine('保留/排單', '');
+            const textEl = line.querySelector('.order-text');
+
+            if (!CANCELABLE_STATUS.includes(order.status)) {
+                textEl.textContent = order.reserved ?? '';
+                return line;
+            }
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'sequence-btn';
+            btn.textContent = order.reserved ?? '';
+            btn.title = '點擊計算目前順位';
+            btn.addEventListener('click', () => {
+                btn.disabled = true;
+                btn.textContent = '計算中...';
+                postJson('/order/calculate-sequence', { order_id: order.order_id })
+                    .then(data => {
+                        if (!data) return;
+                        if (!data.status) throw new Error('calculate failed');
+                        btn.textContent = data.reserved_sequence;
+                        const before = data.before_reserved ?? '';
+                        const beforeLine = createLine('前面數量', before);
+                        const timeLine = createLine('計算時間', data.calculated_time ?? '');
+                        line.after(beforeLine, timeLine);
+                    })
+                    .catch(err => {
+                        console.error('計算順位失敗', err);
+                        btn.disabled = false;
+                        btn.textContent = order.reserved ?? '';
+                        showResultModal('計算失敗', '無法計算順位，請稍後再試');
+                    });
+            });
+            textEl.append(btn);
+            return line;
+        }
+
         function createOrderCard(order) {
             const card = document.createElement('div');
             card.className = 'order-card';
@@ -449,7 +511,7 @@
                 header,
                 dateEl,
                 createLine('品項', `${order.product_name} ${order.spec} × ${order.qty}`),
-                createLine('保留/排單',order.reserved),
+                createSequenceLine(order),
                 createLine('收件人', order.receiver_name),
                 createLine('訂購人', order.customer_name ?? ''),
                 createLine('金額', `貨款 ${order.subtotal} + 運費 ${order.shipment_fee} = ${orderTotal(order)}`),
