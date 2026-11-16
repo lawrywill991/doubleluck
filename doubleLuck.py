@@ -364,7 +364,8 @@ def create_order():
             )
         else:
             return flask.jsonify(
-                False, f"本次新增重量會超過您的保留額，請決定降低數量key單或整單取消"
+                False,
+                f"本次新增重量會超過您的保留額，請決定降低數量key單或整單取消(本張訂單資料未存入)",
             )
         # 利用訂單編號查詢回傳本單排序號是幾號&前面有多少單
         if insert_bool:
