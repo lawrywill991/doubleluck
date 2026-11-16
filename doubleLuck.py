@@ -40,7 +40,7 @@ def login():
         if not isinstance(user_agent, str):
             return flask.jsonify({"status": False, "message": "you ar not welcome"})
         device = get_device(user_agent)
-        ip_address = flask.request.remote_addr
+        ip_address = flask.request.headers.get("X-Real-IP")
         account = login_user.get("account")
         password = login_user.get("password")
         access_bool, message = UserTableCRUD.login_check(account, password)
@@ -81,7 +81,7 @@ def forgotpassword():
         if not isinstance(user_agent, str):
             return flask.jsonify({"status": False})
         device = get_device(user_agent)
-        ip_address = flask.request.remote_addr
+        ip_address = flask.request.headers.get("X-Real-IP")
         account = user_submit_info.get("account")
         email = user_submit_info.get("email")
         relationship = user_submit_info.get("relationship")
@@ -117,7 +117,7 @@ def reset_password():
     if not isinstance(user_agent, str):
         return flask.jsonify({"status": False})
     device = get_device(user_agent)
-    ip_address = flask.request.remote_addr
+    ip_address = flask.request.headers.get("X-Real-IP")
     new_password = reset_password_info.get("new_password")
     confirm_password = reset_password_info.get("confirm_password")
     password = reset_password_info.get("origin_password")
