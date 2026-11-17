@@ -458,12 +458,20 @@ def caculcate_sequence():
     else:
         request_data = flask.request.get_json(silent=True) or {}
         order_id = str(request_data.get("order_id", "")).strip()
+        today = datetime.now(ZoneInfo("Asia/Taipei"))
+        # today = datetime(2026, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
+        year = today.year
+        df = OrderTableCRUD.read_order_for_xlsx(year)
+        reservation, sequence, reservated_weight = OrderTableCRUD.get_order_sequesnce(
+            df, order_id
+        )
+        reservation_sequence = reservation[0] + str(sequence)
         return flask.jsonify(
             {
                 "status": True,
-                "reserved_sequence": "保1",
-                "before_reserved": 0,
-                "calculated_time": "2026-10-02 17:18:20",
+                "reserved_sequence": reservation_sequence,
+                "before_reserved": str(reservated_weight),
+                "calculated_time": str(today),
             }
         )
 
