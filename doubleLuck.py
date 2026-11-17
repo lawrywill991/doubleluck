@@ -458,22 +458,34 @@ def caculcate_sequence():
     else:
         request_data = flask.request.get_json(silent=True) or {}
         order_id = str(request_data.get("order_id", "")).strip()
-        today = datetime.now(ZoneInfo("Asia/Taipei"))
-        # today = datetime(2026, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
-        year = today.year
-        df = OrderTableCRUD.read_order_for_xlsx(year)
-        reservation, sequence, reservated_weight = OrderTableCRUD.get_order_sequesnce(
-            df, order_id
-        )
-        reservation_sequence = reservation[0] + str(sequence)
-        return flask.jsonify(
-            {
-                "status": True,
-                "reserved_sequence": reservation_sequence,
-                "before_reserved": str(reservated_weight),
-                "calculated_time": str(today),
-            }
-        )
+        if not order_id:
+            return flask.jsonify({"status": False, "message": "缺少訂單編號"})
+        try:
+            today = datetime.now(ZoneInfo("Asia/Taipei"))
+            # today = datetime(2026, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
+            year = today.year
+            df = OrderTableCRUD.read_order_for_xlsx(year)
+            order_rows = df.loc[df["order_id"] == order_id]
+            if order_rows.empty:
+                return flask.jsonify({"status": False, "message": "查無訂單"})
+            # 已取消的單不佔順位，也不提供排單順位計算（前端分頁過期時的防呆）
+            if order_rows["status"].iloc[0] == "order_canceled":
+                return flask.jsonify({"status": False, "message": "訂單已取消"})
+            reservation, sequence, reservated_weight = (
+                OrderTableCRUD.get_order_sequesnce(df, order_id)
+            )
+            reservation_sequence = reservation[0] + str(sequence)
+            return flask.jsonify(
+                {
+                    "status": True,
+                    "reserved_sequence": reservation_sequence,
+                    "before_reserved": str(reservated_weight),
+                    "calculated_time": str(today),
+                }
+            )
+        except Exception:
+            traceback.print_exc()
+            return flask.jsonify({"status": False, "message": "計算失敗"}), 500
 
 
 if __name__ == "__main__":
