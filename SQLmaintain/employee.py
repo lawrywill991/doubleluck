@@ -170,7 +170,7 @@ class EmployeeTableCRUD:
                 database = get_db_path()
                 with sqlite3.connect(database) as con:
                     cursor = con.cursor()
-                    query = f"UPDATE employee SET status=? WHERE employee_no=?"
+                    query = f"UPDATE employee SET status=? WHERE employee_no=?" # fmt:skip
                     data = (0, employee_no)
                     cursor.execute(query, data)
                     con.commit()
@@ -244,9 +244,14 @@ class UserTableCRUD:
             return f"發生錯誤:{e}"
 
     @staticmethod
-    def read_user_table(user_name=None, account=None):
-        if user_name is not None or account is not None:
-            column_dict = {"user_name": user_name, "account": account}
+    def read_user_table(user_name=None, account=None, employee_id=None):
+        if user_name is not None or account is not None or employee_id is not None:
+            column_dict = {
+                "user_name": user_name,
+                "account": account,
+                "employee_no": employee_id,
+            }
+            # 登入帳號改從員工編號去登入 2026-11-17
             data_dict = {k: v for k, v in column_dict.items() if v is not None}
             data_keys = list(data_dict.keys())
             # print(data_keys)
@@ -318,15 +323,13 @@ class UserTableCRUD:
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if login_boll:
-            query = "UPDATE user SET last_login=?,fail_login_times=? WHERE account=?"
+            query = "UPDATE user SET last_login=?,fail_login_times=? WHERE account=?" # fmt: skip
             data = (now, 0, account)
         elif 1 < try_times < 6:
-            query = (
-                "UPDATE user SET fail_login_times=fail_login_times + 1 WHERE account=?"
-            )
+            query = "UPDATE user SET fail_login_times=fail_login_times + 1 WHERE account=?" #fmt:skip
             data = (account,)
         else:
-            query = "UPDATE user SET last_fail_login=?,fail_login_times=fail_login_times + 1 WHERE account=?"
+            query = "UPDATE user SET last_fail_login=?,fail_login_times=fail_login_times + 1 WHERE account=?" #fmt:skip
             data = (now, account)
         database = get_db_path()
         with sqlite3.connect(database) as con:
@@ -354,7 +357,8 @@ class UserTableCRUD:
 
     @staticmethod
     def login_check(account, password):
-        user_list = UserTableCRUD.read_user_table(account=account)
+        user_list = UserTableCRUD.read_user_table(employee_id=account)
+        # print(user_list)
         if user_list == [] or len(user_list) > 1:
             return False, {"user_data": None, "falure_message": "no users_account"}
         user = user_list[0]
@@ -404,7 +408,7 @@ class UserTableCRUD:
             database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
-            query = "CREATE TABLE IF NOT EXISTS validation (key BLOB NOT NULL,value BLOB NOT NULL)"
+            query = "CREATE TABLE IF NOT EXISTS validation (key BLOB NOT NULL,value BLOB NOT NULL)" #fmt: skip
             cursor.execute(query)
             con.commit()
             return True
@@ -465,7 +469,7 @@ class UserTableCRUD:
         database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
-            query = "INSERT INTO login_fail (account,fail_reason,device,ip_address)VALUES(?,?,?,?)"
+            query = "INSERT INTO login_fail (account,fail_reason,device,ip_address)VALUES(?,?,?,?)" #fmt:skip
             data = (account, reason, divice, ip_address)
             cursor.execute(query, data)
             con.commit()
@@ -504,7 +508,7 @@ class RoleTableCRUD:
         database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
-            query = "INSERT INTO role (role_name,department,HR_sys,finance_sys,order_sys) Values(?,?,?,?,?)"
+            query = "INSERT INTO role (role_name,department,HR_sys,finance_sys,order_sys) Values(?,?,?,?,?)" #fmt: skip
             data = (role_name, department, HR_sys, finance_sys, order_sys)
             cursor.execute(query, data)
             con.commit()
