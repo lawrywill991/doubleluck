@@ -239,8 +239,8 @@
             <h2>登入</h2>
             <form id="loginForm">
                 <div class="input-group">
-                    <label for="account">使用者名稱</label>
-                    <input type="text" id="account" name="account" placeholder="請輸入您的帳號" required>
+                    <label for="account">員工編號</label>
+                    <input type="text" id="account" name="account" placeholder="請輸入您的員工編號" required>
                 </div>
                 <div class="input-group">
                     <label for="password">密碼</label>
@@ -257,7 +257,7 @@
     <div class="modal-overlay hidden" id="errorModalOverlay">
         <div class="error-dialog">
             <h2>登入失敗</h2>
-            <p id="loginResponse">請檢查您的帳號或密碼。</p>
+            <p id="loginResponse">請檢查您的員工編號或密碼。</p>
             <button id="errorOkButton">確定</button>
         </div>
     </div>
@@ -334,7 +334,7 @@
                     }
                     else if (response.ok && data.message === "no users_account") {
                         let loginFalseInfo = document.getElementById("loginResponse")
-                        loginFalseInfo.textContent = "查無此使用者帳號"
+                        loginFalseInfo.textContent = "查無此員工編號"
                         // loginModalOverlay.classList.add("hidden")
                         errorModalOverlay.classList.remove("hidden")
                     }
@@ -347,7 +347,7 @@
                     }
                     else {
                         let loginFalseInfo = document.getElementById("loginResponse")
-                        loginFalseInfo.textContent = "帳號密碼錯誤，請重新輸入帳號密碼"
+                        loginFalseInfo.textContent = "員工編號或密碼錯誤，請重新輸入"
                         // loginModalOverlay.classList.add("hidden");
                         errorModalOverlay.classList.remove("hidden");
                     }
