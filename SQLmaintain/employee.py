@@ -319,18 +319,18 @@ class UserTableCRUD:
             return False
 
     @staticmethod
-    def update_login_record(login_boll, account, try_times=0):
+    def update_login_record(login_boll, employee_no, try_times=0):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if login_boll:
-            query = "UPDATE user SET last_login=?,fail_login_times=? WHERE account=?" # fmt: skip
-            data = (now, 0, account)
+            query = "UPDATE user SET last_login=?,fail_login_times=? WHERE employee_no=?" # fmt: skip
+            data = (now, 0, employee_no)
         elif 1 < try_times < 6:
-            query = "UPDATE user SET fail_login_times=fail_login_times + 1 WHERE account=?" #fmt:skip
-            data = (account,)
+            query = "UPDATE user SET fail_login_times=fail_login_times + 1 WHERE employee_no=?" #fmt:skip
+            data = (employee_no,)
         else:
-            query = "UPDATE user SET last_fail_login=?,fail_login_times=fail_login_times + 1 WHERE account=?" #fmt:skip
-            data = (now, account)
+            query = "UPDATE user SET last_fail_login=?,fail_login_times=fail_login_times + 1 WHERE employee_no=?" #fmt:skip
+            data = (now, employee_no)
         database = get_db_path()
         with sqlite3.connect(database) as con:
             cursor = con.cursor()
