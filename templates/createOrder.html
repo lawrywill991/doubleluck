@@ -4,7 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>建立訂單</title>
+    <title>好事成雙建立訂單</title>
+    <link rel="icon"
+      type="image/x-icon"
+      href="{{ url_for('static', filename='favicon.ico') }}">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -383,8 +386,7 @@
             <h2>收件人資訊</h2>
             <label for="receiverName">收件人</label>
             <div class="suggest-wrapper">
-                <input type="text" id="receiverName" name="receiverName" placeholder="請輸入收件人姓名"
-                    autocomplete="off">
+                <input type="text" id="receiverName" name="receiverName" placeholder="請輸入收件人姓名" autocomplete="off">
                 <ul id="receiverSuggest" class="suggest-list"></ul>
             </div>
             <div>
@@ -404,8 +406,7 @@
                 <div>
                     <label for="buyerName">訂購人</label>
                     <div class="suggest-wrapper">
-                        <input type="text" id="buyerName" name="buyerName" placeholder="請輸入訂購人姓名"
-                            autocomplete="off">
+                        <input type="text" id="buyerName" name="buyerName" placeholder="請輸入訂購人姓名" autocomplete="off">
                         <ul id="buyerSuggest" class="suggest-list"></ul>
                     </div>
                 </div>
@@ -534,6 +535,8 @@
             const modalResult = document.getElementById('modalResult');
             const specificateShipDate = document.getElementById('specificateShipDate')
             const shipDate = document.getElementById('shipDate')
+            const actualShippingInput = document.getElementById("actualShipping")
+            const actualPaymentInput = document.getElementById("actualPayment")
             //先來處理前端顯示產品規格的部分
             names.forEach(name => {
                 itemSelect.add(new Option(name, name));
@@ -572,11 +575,15 @@
                     transport_rate = Number(transportObj[transport_code])
                 }
                 const expectedShipping = quantity * transport_rate;
-                const expectedTotal = expectedPayment + expectedShipping;
-
+                const expectedTotal = expectedPayment + expectedShipping;//後來UI改變沒用到了
+                //新增實際總額欄位
+                const actualShipping = Number(actualShippingInput.value || 0)
+                const actualPayment = Number(actualPaymentInput.value || 0)
+                const actualTotal = actualPayment + actualShipping
+                
                 expectedPaymentDisplay.textContent = `預計貨款: ${expectedPayment}`;
                 expectedShippingDisplay.textContent = `預計運費: ${expectedShipping}`;
-                expectedTotalAmountDisplay.textContent = `預計總額: ${expectedTotal}`;
+                expectedTotalAmountDisplay.textContent = `實際總額: ${actualTotal}`;
             }
 
             sameAsRecipientCheckbox.addEventListener('change', toggleBuyerBlock);
@@ -592,6 +599,10 @@
             });
             quantityInput.addEventListener('input', calculateExpectedValues);
             quantityInput.addEventListener('change', calculateExpectedValues);
+            actualPaymentInput.addEventListener('input', calculateExpectedValues);
+            actualShippingInput.addEventListener('input', calculateExpectedValues);
+            actualPaymentInput.addEventListener('change', calculateExpectedValues);
+            actualShippingInput.addEventListener('change', calculateExpectedValues);
 
             toggleBuyerBlock();
             toggleShippingDate();
