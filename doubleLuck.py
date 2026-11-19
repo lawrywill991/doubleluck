@@ -330,7 +330,7 @@ def create_order():
                 customer_name=customer_name
             )
             customer_id = customer_info[0]["customer_id"]
-        else:
+        else:  # 這裡可能之後要考量一種前端把客戶電話地址改了的情況但姓名沒改。
             customer_id = customer_info[0]["customer_id"]
         # 計算並取得業務員的保留額與使用狀況
         if in_reserving_period:
