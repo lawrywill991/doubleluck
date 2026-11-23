@@ -1,5 +1,5 @@
 import sqlite3
-
+import pandas as pd
 from .SQLutils import DataTransfer
 from config import get_db_path
 
@@ -24,7 +24,7 @@ class ProductsTableCRUD:
             con.commit()
 
     @staticmethod
-    def insert_product(product_name, spec, price, product_code, create_by=None):
+    def insert_product(product_name, spec, price, product_code, create_by=None): #fmt: skip
         try:
             database = get_db_path()
             with sqlite3.connect(database) as con:
@@ -54,7 +54,7 @@ class ProductsTableCRUD:
             ## 其實更好是用動態寫法 conditions=[] data=[] + append() 然後 query += " WHERE " + " OR ".join(where) 但超出我現階段的能力。
             ## 要改就可以參考product.py裡面的read_order_table()寫法
             if product_name != None and spec != None:
-                query = "SELECT * FROM products WHERE product_name = ? and spec =?"
+                query = "SELECT * FROM products WHERE product_name = ? and spec =?" #fmt:skip
                 data = (product_name, spec)
                 cursor.execute(query, data)
             elif product_name != None:
@@ -124,3 +124,41 @@ class ProductsTableCRUD:
             cursor.execute(query, data)
             con.commit()
         return f"已從products表格中刪除{id}紀錄"
+
+    @staticmethod
+    def update_product_info(product_code, column, old, new):
+        if isinstance(old, str) and (old.strip().lower() in ["none", "null", ""]):
+            old = None
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            cursor = sqlite3.Cursor(con)
+            Query = f'SELECT "{column}" FROM "products" WHERE "product_code"=?'
+            data = (product_code,)
+            cursor.execute(Query, data)
+            originalvalue = cursor.fetchall()
+        if len(originalvalue) != 1:
+            raise ValueError(
+                f"product_code:{product_code} is not uniqe or none in products table"
+            )
+        if originalvalue[0][0] != old:
+            raise ValueError(f"data:{old} is not your input old, pls reconfirm.")
+
+        # print(originalvalue[0][0])
+        with sqlite3.connect(database) as conn4:
+            cursor = sqlite3.Cursor(conn4)
+            Query = f'UPDATE "products" SET "{column}"=? WHERE "product_code"=?'
+            data = (new, product_code)
+            cursor.execute(Query, data)
+            conn4.commit()
+            data = ProductsTableCRUD.read_product_info(product_code)
+            return data
+
+    @staticmethod
+    def read_product_unit_weight() -> pd.Series:
+        database = get_db_path()
+        with sqlite3.connect(database) as con:
+            query = "SELECT product_code,unit_weight FROM products"
+            df = pd.read_sql_query(query, con)
+            df["unit_weight"] = df["unit_weight"].fillna(0)
+        mapping_series = df.set_index("product_code")["unit_weight"]
+        return mapping_series

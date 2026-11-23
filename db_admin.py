@@ -34,7 +34,6 @@ from migrations import (
     add_login_fail_table,
 )
 from config import get_file_export_path
-
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 import pandas as pd
@@ -545,6 +544,25 @@ def main():
                 else:
                     print("訂單資料更新無此選項")
                     break
+        elif function_choice == "3" and table_choice.upper() == "D":
+            column_info = database_manager.check_table_columns("products")
+            columns = [obj[1] for obj in column_info]
+            print(columns)
+            while True:
+                update_column = input("請輸入修改的欄位 \n")
+                if update_column in columns:
+                    break
+                else:
+                    print(f"the column:{update_column} is not in table")
+            product_code = input("請輸入修改的產品編號: \n")
+            old_value = input("請輸入修改欄位原值 \n")
+            new_value = input("請輸入該欄位欲更新的值\n")
+            updated_full_data = ProductsTableCRUD.update_product_info(
+                product_code, update_column, old_value, new_value
+            )
+            print(updated_full_data)
+
+            break
         # 加速尋找: 以上為UPDATE區；以下為DELETE區
 
         elif function_choice == "D" and table_choice.upper() == "B":
@@ -677,10 +695,9 @@ def main():
 
         # 加速尋找: 以上為DELETE區；以下為測試區
 
-        elif function_choice == "T" and table_choice.upper() == "F":
-            employee_no = "SHR07"
-            tester = RoleTableCRUD.read_personal_permission(employee_no)
-            print(tester)
+        elif function_choice == "T" and table_choice.upper() == "D":
+            df = OrderTableCRUD.read_order_for_xlsx(2026)
+            print(df)
             break
 
         elif function_choice == "T" and table_choice.upper() == "P":

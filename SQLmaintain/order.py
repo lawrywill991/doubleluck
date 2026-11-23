@@ -9,6 +9,7 @@ import numpy as np
 
 from .SQLutils import check_phone, check_internal_id_format
 from config import get_db_path
+from .product import ProductsTableCRUD
 
 LAST_PRODUCTION = 4130
 RESERVE_RATIO = {
@@ -30,26 +31,6 @@ START_ORDER_TAKING_PD = pd.Timestamp(2026, 11, 1)
 ORDER_STATUS = ("not_shipped", "not_paid", "order_canceled", "complete", "bad debt")
 # 業務自己可以取消的狀態；完成、呆帳、已取消都不行
 CANCELABLE_STATUS = ("not_shipped", "not_paid")
-
-
-MAPPING_WEIGHT = {
-    "pomelo-G-10": 10,
-    "pomelo-G-15": 15,
-    "pomelo-G-20": 20,
-    "pomelo-G-1": 1,
-    "pomelo-U-10": 10,
-    "pomelo-U-15": 15,
-    "pomelo-U-20": 20,
-    "pomelo-U-1": 1,
-    "pomelo-B-10": 10,
-    "pomelo-B-15": 15,
-    "pomelo-B-20": 20,
-    "pomelo-B-1": 1,
-    "pomelo-S-10": 10,
-    "pomelo-S-15": 15,
-    "pomelo-S-20": 20,
-    "pomelo-S-1": 1,
-}  # 這個太麻煩，之後要乾脆寫進去products table來調用比較乾脆
 
 
 class CustomerTableCRUD:
@@ -426,13 +407,12 @@ class OrderTableCRUD:
 
             else:
                 sql = "SELECT * FROM orders WHERE created_at BETWEEN ? AND ?"
-            sql_condition = (
-                f"{year}-01-01",
-                f"{year}-12-31",
-            )  # 這樣會漏查12/31當天key的，但問題不大，遇到再修。
+            sql_condition = (f"{year}-01-01", f"{year}-12-31")  #fmt:skip
+            # 這樣會漏查12/31當天key的，但問題不大，遇到再修。
             df = pd.read_sql_query(con=con, sql=sql, params=sql_condition)
             df["created_at"] = pd.to_datetime(df["created_at"])
-            df["weight"] = df["product_code"].map(MAPPING_WEIGHT) * df["qty"]
+            maping_series = ProductsTableCRUD.read_product_unit_weight()
+            df["weight"] = df["product_code"].map(maping_series) * df["qty"]
             return df
 
     @staticmethod
@@ -447,7 +427,8 @@ class OrderTableCRUD:
                 str(END_ORDER_TAKING),
             )
             df = pd.read_sql_query(con=con, sql=sql, params=sql_condition)
-            df["weight"] = df["product_code"].map(MAPPING_WEIGHT) * df["qty"]
+            maping_series = ProductsTableCRUD.read_product_unit_weight()
+            df["weight"] = df["product_code"].map(maping_series) * df["qty"]
 
         return df
 
