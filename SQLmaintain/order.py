@@ -730,15 +730,13 @@ class OrderTableCRUD:
         product_code: str, old_oder: float, new_oder: int, reservation_amount: float
     ) -> str:
         """ "input the product code and weight(new_oder is qty) ,return "保留"or"排單"or"退回" """
-        need_reserve_product = {
-            "pomelo-G-10": 10,
-            "pomelo-G-15": 15,
-            "pomelo-G-20": 20,
-            "pomelo-G-1": 1,
-        }
+        unit_weights = ProductsTableCRUD.read_product_unit_weight()
+        need_reserve_product = unit_weights[
+            unit_weights.index.str.startswith("pomelo-G-")
+        ]
 
-        if product_code in need_reserve_product.keys():
-            new_weight = new_oder * need_reserve_product[product_code]
+        if product_code in need_reserve_product.index:
+            new_weight = new_oder * float(need_reserve_product[product_code])
             # print(f"本次新增重量:{new_oder}")
             if old_oder + new_weight <= reservation_amount:
                 # print("O+N<=R")
