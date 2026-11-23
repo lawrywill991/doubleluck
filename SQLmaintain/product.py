@@ -131,6 +131,9 @@ class ProductsTableCRUD:
             old = None
         database = get_db_path()
         with sqlite3.connect(database) as con:
+            valid_columns = [r[1] for r in con.execute("PRAGMA table_info(products)")]
+            if column not in valid_columns:
+                raise ValueError(f"column:{column} is not in products table")
             cursor = sqlite3.Cursor(con)
             Query = f'SELECT "{column}" FROM "products" WHERE "product_code"=?'
             data = (product_code,)
@@ -140,7 +143,14 @@ class ProductsTableCRUD:
             raise ValueError(
                 f"product_code:{product_code} is not uniqe or none in products table"
             )
-        if originalvalue[0][0] != old:
+        original = originalvalue[0][0]
+        # input() 傳進來都是字串，數字欄位(INTEGER/REAL)要先轉成數字再比對
+        if isinstance(original, (int, float)) and isinstance(old, str):
+            try:
+                old = float(old)
+            except ValueError:
+                raise ValueError(f"data:{old} is not your input old, pls reconfirm.")
+        if original != old:
             raise ValueError(f"data:{old} is not your input old, pls reconfirm.")
 
         # print(originalvalue[0][0])
