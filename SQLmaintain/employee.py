@@ -429,7 +429,7 @@ class UserTableCRUD:
     @staticmethod
     def validation_sequence(account, verify_email, relationship, name):
         user_info = UserTableCRUD.read_user_table(account=account)
-        if user_info == None or len(user_info) > 1:
+        if not user_info or len(user_info) != 1:
             return False
         email = user_info[0]["email"]
         id = user_info[0]["id"]
