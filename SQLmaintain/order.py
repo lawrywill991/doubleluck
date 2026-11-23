@@ -269,7 +269,9 @@ class OrderTableCRUD:
         order_id=None, receiver_name=None, status=None
     ) -> list[dict[Any, Any]]:
         if order_id is not None or receiver_name is not None or status is not None:
-            if status is not None and status not in ORDER_STATUS:  # 應該要把檢查的段落放在db_admin與flask那裏
+            if (
+                status is not None and status not in ORDER_STATUS
+            ):  # 應該要把檢查的段落放在db_admin與flask那裏
                 return [
                     {"read result": "wrong status"}
                 ]  # 應該要把檢查的段落放在db_admin與flask那裏
@@ -801,8 +803,10 @@ def order_taking_date_check(today: datetime) -> bool:
 
 
 def order_reserving_date_check(today: date) -> bool:
-    # today=datetime.date.today()
-    if today < HARVEST_DAY and today > START_ORDER_TAKING:
+    # print(today)
+    # print(HARVEST_DAY)
+    # print(START_ORDER_TAKING)
+    if today < HARVEST_DAY and today >= START_ORDER_TAKING:
         return True
     else:
         return False

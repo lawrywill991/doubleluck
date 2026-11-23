@@ -436,8 +436,9 @@ def get_personal_reservation():
         # start_date, today, end_date = default_date_range("orders") #我不確定明年的時候會不會日期範圍出錯，先留著
         # 日期要和 /order/create 一致，上線時兩邊一起換回正式的 today
         # today = datetime.now(ZoneInfo("Asia/Taipei"))
-        today = datetime(2026, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
+        today = datetime(2026, 8, 21, tzinfo=ZoneInfo("Asia/Taipei"))
         in_reserving_period = order_reserving_date_check(today)
+        # print(in_reserving_period)
         sales_df = OrderTableCRUD.get_sales_df(employee_no)
         reservation_usage = OrderTableCRUD.get_sales_reservation(sales_df)
         reservation_quota = calculate_reserved_amount(employee_no)
