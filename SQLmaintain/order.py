@@ -268,19 +268,8 @@ class OrderTableCRUD:
     def read_order_table(
         order_id=None, receiver_name=None, status=None
     ) -> list[dict[Any, Any]]:
-        status_list = [
-            "not_shipped",
-            "not_paid",
-            "order_canceled",
-            "complete",
-            "bad debt",
-        ]  # 應該要把檢查的段落放在db_admin與flask那裏
-
         if order_id is not None or receiver_name is not None or status is not None:
-            if status not in [
-                status_list,
-                None,
-            ]:  # 應該要把檢查的段落放在db_admin與flask那裏
+            if status is not None and status not in ORDER_STATUS:  # 應該要把檢查的段落放在db_admin與flask那裏
                 return [
                     {"read result": "wrong status"}
                 ]  # 應該要把檢查的段落放在db_admin與flask那裏
