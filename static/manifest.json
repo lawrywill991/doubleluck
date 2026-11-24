@@ -1,0 +1,8 @@
+{"id":"doubleLuck",
+"name":"好事成雙系統",
+"short_name":"好事成雙",
+"display":"standalone",
+"background_color":"#ffffff",
+"theme_color":"#4CFA50",
+"icons":[{"src":"/static/favicon.ico","sizes":"16x16 32x32 48x48 64x64 128x128 256x256","type":"image/x-icon"}]
+}
