@@ -285,8 +285,8 @@ def search_customer():
 
 @doubleluck.route("/order/create", methods=["POST"])
 def create_order():
-    # today = datetime.now(ZoneInfo("Asia/Taipei"))
-    today = datetime(2026, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
+    today = datetime.now(ZoneInfo("Asia/Taipei"))
+    # today = datetime(2026, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
     date_after_start = order_taking_date_check(today)
     in_reserving_period = order_reserving_date_check(today)
     if flask.session.get("login") != True:
@@ -435,8 +435,8 @@ def get_personal_reservation():
         employee_no = flask.session["employee_id"]
         # start_date, today, end_date = default_date_range("orders") #我不確定明年的時候會不會日期範圍出錯，先留著
         # 日期要和 /order/create 一致，上線時兩邊一起換回正式的 today
-        # today = datetime.now(ZoneInfo("Asia/Taipei"))
-        today = datetime(2026, 8, 21, tzinfo=ZoneInfo("Asia/Taipei"))
+        today = datetime.now(ZoneInfo("Asia/Taipei"))
+        # today = datetime(2026, 8, 22, tzinfo=ZoneInfo("Asia/Taipei"))
         in_reserving_period = order_reserving_date_check(today)
         # print(in_reserving_period)
         sales_df = OrderTableCRUD.get_sales_df(employee_no)

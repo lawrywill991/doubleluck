@@ -22,11 +22,11 @@ RESERVE_RATIO = {
 }
 # 2027正式採收日(2027,8,21)
 # 2027開始接單日(2027,8,15)
-HARVEST_DAY = datetime(2026, 8, 21, tzinfo=ZoneInfo("Asia/Taipei"))
-START_ORDER_TAKING = datetime(2026, 8, 15, tzinfo=ZoneInfo("Asia/Taipei"))
-END_ORDER_TAKING = datetime(2026, 12, 31, tzinfo=ZoneInfo("Asia/Taipei"))
-HARVEST_DAY_PD = pd.Timestamp(2026, 11, 30)
-START_ORDER_TAKING_PD = pd.Timestamp(2026, 11, 1)
+HARVEST_DAY = datetime(2027, 8, 21, tzinfo=ZoneInfo("Asia/Taipei"))
+START_ORDER_TAKING = datetime(2027, 8, 15, tzinfo=ZoneInfo("Asia/Taipei"))
+END_ORDER_TAKING = datetime(2027, 9, 15, tzinfo=ZoneInfo("Asia/Taipei"))
+HARVEST_DAY_PD = pd.Timestamp(2027, 8, 21)
+START_ORDER_TAKING_PD = pd.Timestamp(2027, 8, 15)
 
 ORDER_STATUS = ("not_shipped", "not_paid", "order_canceled", "complete", "bad debt")
 # 業務自己可以取消的狀態；完成、呆帳、已取消都不行
