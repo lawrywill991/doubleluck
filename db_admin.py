@@ -511,7 +511,74 @@ def main():
                 if update_choice == "0":
                     break
                 elif update_choice.upper() == "U":
-                    continue
+                    update_columns = [
+                        "subtotal",
+                        "shipment_fee",
+                        "ship_date_requested",
+                        "customer_id",
+                        "receiver_name",
+                        "receiver_phone",
+                        "receiver_address",
+                        "payment_method",
+                        "transfer_account",
+                        "order_notes",
+                    ]
+                    column = input("請輸入修改欄位 Enter=返回 \n")
+                    if column == "":
+                        continue
+                    if column not in update_columns:
+                        print(f"欄位{column}不可修改")
+                        continue
+                    old_data = order_info[0][column]
+                    print(f"目前的值:{old_data}")
+                    new_data = input("請輸入更新數值\n")
+                    if new_data == "":
+                        print("更新數值不能為空")
+                        continue
+
+                    if column in ["product_code", "qty"]:
+                        # 改產品編號時，品名與規格要跟著一起改
+                        print("產品、數量不可改變，請取消訂單以重新進行排序")
+                        break
+                    if column == "customer_id":
+                        # 改客戶編號時，要留意客戶資料表的更新狀態
+                        print("客戶資料請先從客戶表修改")
+                        new_customer_info = CustomerTableCRUD.read_customer_table(
+                            new_data
+                        )
+                        print(new_customer_info)
+                        confirm = input(
+                            f"確認將{order_id}的客戶改成{new_data}的資料? Y/N \n"
+                        )
+                        if confirm.upper() != "Y":
+                            continue
+                        else:
+                            updates = {column: new_data}
+                    else:
+                        updates = {column: new_data}
+
+                    confirm = input(f"確認將{order_id}更新為{updates}? Y/N \n")
+                    if confirm.upper() != "Y":
+                        continue
+                    for update_column, value in updates.items():
+                        # 品名或規格沒變就不用寫入
+                        if (
+                            update_column != column
+                            and order_info[0][update_column] == value
+                        ):
+                            continue
+                        updated, update_message = OrderTableCRUD.update_order(
+                            order_id,
+                            update_column,
+                            order_info[0][update_column],
+                            value,
+                        )
+                        print(update_message)
+                        if not updated:
+                            break
+                    # 重新讀取，讓下一次修改拿到最新的舊值
+                    order_info = OrderTableCRUD.read_order_table(order_id)
+                    print(order_info)
                 elif update_choice == "1":
                     shipment_date = input("請輸入出貨日期\n")
                     update_result = OrderTableCRUD.order_shipping(
