@@ -567,6 +567,7 @@ class OrderTableCRUD:
             "product_name",
             "spec",
             "qty",
+            "customer_id",
             "subtotal",
             "shipment_fee",
             "ship_date_requested",
@@ -600,6 +601,9 @@ class OrderTableCRUD:
                     new_data = int(new_data)
                 except (TypeError, ValueError):
                     return False, "輸入的數量、貨款、運費並非數字"
+            elif column == "customer_id":
+                if not CustomerTableCRUD.read_customer_table(customer_id=new_data):
+                    return False, f"找不到客戶編號為{new_data}的資料"
 
             if old_data == new_data:
                 return False, "新值與舊值相同，不需修改"

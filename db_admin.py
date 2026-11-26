@@ -544,19 +544,14 @@ def main():
                         # 改客戶編號時，要留意客戶資料表的更新狀態
                         print("客戶資料請先從客戶表修改")
                         new_customer_info = CustomerTableCRUD.read_customer_table(
-                            new_data
+                            customer_id=new_data
                         )
-                        print(new_customer_info)
-                        confirm = input(
-                            f"確認將{order_id}的客戶改成{new_data}的資料? Y/N \n"
-                        )
-                        if confirm.upper() != "Y":
+                        if not new_customer_info:
+                            print(f"查無客戶編號{new_data}")
                             continue
-                        else:
-                            updates = {column: new_data}
-                    else:
-                        updates = {column: new_data}
+                        print(new_customer_info)
 
+                    updates = {column: new_data}
                     confirm = input(f"確認將{order_id}更新為{updates}? Y/N \n")
                     if confirm.upper() != "Y":
                         continue
