@@ -1,7 +1,9 @@
 import flask
 import traceback
-from flask import render_template
-from datetime import datetime, date
+import time  # 這是計時用的
+
+# from flask import render_template
+from datetime import datetime, date  # 這是日期管理用的
 from zoneinfo import ZoneInfo
 
 from SQLmaintain import (
@@ -173,12 +175,12 @@ def to_duration_page():
 def add_Duration():
     if flask.session.get("login") != True:
         return flask.redirect(flask.url_for("login"))
-
+    start = time.perf_counter()
     working_data = flask.request.get_json()
-
+    time1 = time.perf_counter()
     _, worker_dicts = EmployeeTableCRUD.read_employee_table()
     worker_dicts = DataTransfer(worker_dicts).to_worker_dicts(nick_name=False)
-
+    time2 = time.perf_counter()
     recorder = flask.session["employee_id"]
 
     # 提取共用參數
@@ -189,7 +191,7 @@ def add_Duration():
     work_description = working_data["workContent"]
 
     data = []
-
+    for_times = []
     # 將寫入與計算合併在同一個迴圈，減少重複走訪
     for worker_no in working_data["workers"]:
         worker = worker_dicts[worker_no]
@@ -206,7 +208,8 @@ def add_Duration():
             work_description,
             recorder,
         )
-
+        time3 = time.perf_counter()
+        for_times.append(time3)
         if not success:
             worker_duration = None
         else:
@@ -220,7 +223,16 @@ def add_Duration():
                 worker_duration = 0
 
         data.append({worker_nick_name: worker_duration})
+    time4 = time.perf_counter()
+    flask.current_app.logger.info(f"recorder{recorder}送來{work_date}的時間反應紀錄: ")
+    flask.current_app.logger.info(f"get_json: {(time1 - start) * 1000:.3f} ms")
 
+    flask.current_app.logger.info(f"employee_data: {(time2 - start) * 1000:.3f} ms")
+    flask.current_app.logger.info(
+        f"我亂搞的time3時間物件:{[(t - start) * 1000 for t in for_times]} ms"
+    )
+    flask.current_app.logger.info(f"total_processing: {(time4 - start) * 1000:.3f} ms")
+    flask.current_app.logger.info("目前沒有time5可以計算jsonify到HTTP送回的時間")
     return flask.jsonify({"status": True, "data": data})
 
 
