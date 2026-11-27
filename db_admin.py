@@ -28,11 +28,11 @@ from migrations import (
     alter_weight_column,
     add_login_succes_column,
     add_login_fail_table,
-    add_expenditure_table,
-    add_expenditure_category_table,
-    add_account_table,
-    add_account_trigger1,
-    add_account_trigger2,
+    # add_expenditure_table,
+    # add_expenditure_category_table,
+    # add_account_table,
+    # add_account_trigger1,
+    # add_account_trigger2,
 )
 from config import get_file_export_path
 from datetime import date, datetime
@@ -114,14 +114,17 @@ def main():
                     add_login_fail_table()
                     print("login_fail表格已新增")
                 elif table_choice == "I":
-                    result = add_expenditure_category_table()
-                    print(result)
+                    # result = add_expenditure_category_table()
+                    # print(result)
+                    pass
                 elif table_choice == "J":
-                    result = add_expenditure_table()
-                    print(result)
+                    # result = add_expenditure_table()
+                    # print(result)
+                    pass
                 elif table_choice == "K":
-                    result = add_account_table()
-                    print(result)
+                    # result = add_account_table()
+                    # print(result)
+                    pass
                 else:
                     print("暫無預設表格可輸入，請聯繫程式作者")
                     break
@@ -171,10 +174,11 @@ def main():
                 alter_result = add_login_succes_column()
                 print(alter_result)
             elif (table == "account") & (table_deal == "C"):
-                trigger_add_result1 = add_account_trigger1()
-                print(trigger_add_result1)
-                trigger_add_result2 = add_account_trigger2()
-                print(trigger_add_result2)
+                # trigger_add_result1 = add_account_trigger1()
+                # print(trigger_add_result1)
+                # trigger_add_result2 = add_account_trigger2()
+                # print(trigger_add_result2)
+                pass
             else:
                 print("查無表格名稱或，請重新操作")
                 break
