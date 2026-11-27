@@ -64,7 +64,7 @@ def add_account_trigger1(table="account"):
     database = get_db_path()
     with sqlite3.connect(database) as con:
         cursor = con.cursor()
-        query = f"""CREATE TRIGGER trg_account_update_check
+        query = f"""CREATE TRIGGER IF NOT EXISTS trg_account_update_check
             BEFORE UPDATE OF amount ON {table}
             FOR EACH ROW
             WHEN NEW.amount != OLD.amount
@@ -95,7 +95,7 @@ def add_account_trigger2(table="account"):
                         AND NOT EXISTS (
                             SELECT 1
                             FROM employee
-                            WHERE employee_id = NEW.last_updater
+                            WHERE employee_no = NEW.last_updater
                             )
                         THEN RAISE(ABORT, 'Invalid last_updater')
                      END;
