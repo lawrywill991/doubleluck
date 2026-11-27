@@ -8,13 +8,19 @@ def add_expenditure_table() -> str:
         cursor = con.cursor()
         query = """CREATE TABLE IF NOT EXISTS expenditure(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            expense_date TEXT NOT NULL,
             item TEXT NOT NULL,
             category_id TEXT NOT NULL REFERENCES expenditure_categories(categories_id),
             unit_price REAL,
             unit TEXT,
             quantity REAL,
             amount INTEGER NOT NULL,
-            
+            account_id INTEGER NOT NULL REFERENCES account(id),
+            details TEXT,
+            other_description TEXT,
+            confirmed TEXT NOT NULL DEFAULT 'N' CHECK (confirmed IN ('Y','N')),
+            confirmed_by TEXT REFERENCES employee(employee_no),
+            confirmed_at DATETIME,
             create_by TEXT NOT NULL REFERENCES employee(employee_no),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );"""
