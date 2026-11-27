@@ -14,6 +14,7 @@ from .SQLutils import (
 from .employee import UserTableCRUD, EmployeeTableCRUD, RoleTableCRUD
 from .product import ProductsTableCRUD
 from .workduration import WorkingTimeTableCRUD
+from .finance import ExpenditureCRUD, AccountCRUD
 from .order import (
     CustomerTableCRUD,
     OrderTableCRUD,
